@@ -1,0 +1,136 @@
+.search-hero {
+  background: linear-gradient(135deg, var(--secondary), #2D2D4E);
+  color: white;
+  padding: 40px 0 36px;
+}
+
+.search-hero h1 {
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 16px;
+}
+
+.search-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border-radius: 12px;
+  padding: 6px 6px 6px 16px;
+  max-width: 600px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.search-form-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.search-form-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 15px;
+  color: var(--text);
+  background: transparent;
+  padding: 6px 0;
+}
+
+.search-form-input::placeholder {
+  color: var(--text-muted);
+}
+
+.search-results {
+  padding-top: 24px;
+  padding-bottom: 48px;
+}
+
+.search-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 32px 0;
+}
+
+.search-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px 24px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.search-empty h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.search-count {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.search-group {
+  margin-bottom: 28px;
+}
+
+.search-group-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--border);
+}
+
+.search-group-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  transition: color 0.2s;
+}
+
+.search-group-name:hover {
+  color: var(--primary);
+}
+
+.search-group-name svg {
+  color: var(--primary);
+}
+
+.search-group-location {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.search-products-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.search-hints {
+  padding: 32px 0;
+}
+
+.search-hints h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text-muted);
+}
+
+.search-hint-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
