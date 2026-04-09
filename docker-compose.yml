@@ -1,73 +1,33 @@
 version: '3.8'
 
 services:
-  mongo1:
-    image: mongo:7.0
-    container_name: pertodemim_mongo1
-    hostname: mongo1
-    restart: unless-stopped
-    ports:
-      - "27000:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: adminpassword
-    volumes:
-      - mongo1_data:/data/db
-      - ./mongo-init/init-replica.sh:/docker-entrypoint-initdb.d/init-replica.sh:ro
-    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--keyFile", "/etc/mongo-keyfile"]
-    entrypoint:
-      - bash
-      - -c
-      - |
-        openssl rand -base64 756 > /etc/mongo-keyfile
-        chmod 400 /etc/mongo-keyfile
-        chown 999:999 /etc/mongo-keyfile
-        exec docker-entrypoint.sh $$@
-    networks:
-      - pertodemim_net
-
-  mongo-init:
-    image: mongo:7.0
-    container_name: pertodemim_mongo_init
-    depends_on:
-      - mongo1
-    restart: "no"
-    networks:
-      - pertodemim_net
-    command: >
-      bash -c "
-        sleep 10 &&
-        mongosh --host mongo1:27017 -u admin -p adminpassword --authenticationDatabase admin --eval '
-          try {
-            rs.status();
-            print(\"Replica set already initialized\");
-          } catch(e) {
-            rs.initiate({
-              _id: \"rs0\",
-              members: [{ _id: 0, host: \"mongo1:27017\" }]
-            });
-            print(\"Replica set initialized\");
-          }
-        '
-      "
-
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: pertodemim_backend
     restart: unless-stopped
-    ports:
-      - "4000:4000"
-    depends_on:
-      - mongo-init
+    expose:
+      - "4000"
     environment:
       - NODE_ENV=production
       - PORT=4000
-      - MONGODB_URI=mongodb://admin:adminpassword@mongo1:27017/pertodemim?authSource=admin&replicaSet=rs0
-      - JWT_SECRET=your_super_secret_jwt_key_change_in_production
-      - JWT_REFRESH_SECRET=your_super_secret_refresh_key_change_in_production
-      - FRONTEND_URL=http://localhost:5173
+      - MONGODB_URI=${MONGODB_URI}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - STRIPE_SUCCESS_URL=${STRIPE_SUCCESS_URL}
+      - STRIPE_CANCEL_URL=${STRIPE_CANCEL_URL}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_CALLBACK_URL=${GOOGLE_CALLBACK_URL}
+      - OCI_NAMESPACE=${OCI_NAMESPACE}
+      - OCI_BUCKET_NAME=${OCI_BUCKET_NAME}
+      - OCI_REGION=${OCI_REGION}
+      - OCI_ACCESS_KEY_ID=${OCI_ACCESS_KEY_ID}
+      - OCI_SECRET_ACCESS_KEY=${OCI_SECRET_ACCESS_KEY}
     networks:
       - pertodemim_net
 
@@ -83,9 +43,6 @@ services:
       - backend
     networks:
       - pertodemim_net
-
-volumes:
-  mongo1_data:
 
 networks:
   pertodemim_net:

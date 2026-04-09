@@ -211,13 +211,15 @@
 
   .user-name,
   .navbar-actions .btn-ghost,
-  .navbar-actions .btn-primary {
+  .navbar-actions .btn-primary,
+  .user-menu-trigger,
+  .navbar-mobile-toggle {
     display: none;
   }
+}
 
-  .navbar-mobile-toggle {
-    display: flex;
-  }
+.navbar-mobile {
+  display: none;
 }
 
 .navbar-mobile {
