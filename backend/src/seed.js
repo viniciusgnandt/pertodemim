@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 const User = require('./models/User');
 const Establishment = require('./models/Establishment');
 const Product = require('./models/Product');
-const Boost = require('./models/Boost');
 
 const DEFAULT_HOURS = [
   { day: 'monday', open: '08:00', close: '20:00', closed: false },
@@ -362,7 +361,6 @@ if (require.main === module) {
       await User.deleteMany({});
       await Establishment.deleteMany({});
       await Product.deleteMany({});
-      await Boost.deleteMany({});
       await seedData();
       process.exit(0);
     })

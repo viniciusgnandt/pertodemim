@@ -1,5 +1,4 @@
 const router = require('express').Router();
-const passport = require('passport');
 const User = require('../models/User');
 const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require('../utils/jwt');
 const { protect } = require('../middleware/auth');
@@ -23,7 +22,6 @@ router.post('/register', async (req, res) => {
 
     const accessToken = generateAccessToken(user._id);
     const refreshToken = generateRefreshToken(user._id);
-
     await User.findByIdAndUpdate(user._id, { $push: { refreshTokens: refreshToken } });
 
     res.status(201).json({ user, accessToken, refreshToken });
@@ -50,7 +48,6 @@ router.post('/login', async (req, res) => {
 
     const accessToken = generateAccessToken(user._id);
     const refreshToken = generateRefreshToken(user._id);
-
     await User.findByIdAndUpdate(user._id, { $push: { refreshTokens: refreshToken } });
 
     res.json({ user, accessToken, refreshToken });
@@ -73,7 +70,6 @@ router.post('/refresh', async (req, res) => {
 
     const newAccessToken = generateAccessToken(user._id);
     const newRefreshToken = generateRefreshToken(user._id);
-
     await User.findByIdAndUpdate(user._id, {
       $pull: { refreshTokens: refreshToken },
       $push: { refreshTokens: newRefreshToken },
@@ -101,31 +97,6 @@ router.post('/logout', protect, async (req, res) => {
 // Get current user
 router.get('/me', protect, (req, res) => {
   res.json({ user: req.user });
-});
-
-// Google OAuth
-router.get('/google', passport.authenticate('google', {
-  scope: ['profile', 'email'],
-  session: false,
-}));
-
-router.get('/google/callback',
-  passport.authenticate('google', { session: false, failureRedirect: `${process.env.FRONTEND_URL}/login?error=oauth` }),
-  async (req, res) => {
-    const accessToken = generateAccessToken(req.user._id);
-    const refreshToken = generateRefreshToken(req.user._id);
-    await User.findByIdAndUpdate(req.user._id, { $push: { refreshTokens: refreshToken } });
-    res.redirect(`${process.env.FRONTEND_URL}/auth/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`);
-  }
-);
-
-// Apple OAuth placeholder
-router.get('/apple', (req, res) => {
-  res.status(501).json({ error: 'Apple OAuth not configured' });
-});
-
-router.get('/apple/callback', (req, res) => {
-  res.status(501).json({ error: 'Apple OAuth not configured' });
 });
 
 module.exports = router;

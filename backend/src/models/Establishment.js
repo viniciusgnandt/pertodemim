@@ -56,7 +56,6 @@ const establishmentSchema = new mongoose.Schema({
   businessHours: [businessHoursSchema],
   isSponsored: { type: Boolean, default: false },
   sponsoredUntil: { type: Date },
-  sponsoredBoostId: { type: mongoose.Schema.Types.ObjectId, ref: 'Boost' },
   isActive: { type: Boolean, default: true },
 }, { timestamps: true });
 

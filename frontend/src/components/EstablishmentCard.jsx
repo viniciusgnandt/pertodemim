@@ -1,32 +1,18 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Clock, Star, Zap } from 'lucide-react';
+import { MapPin, Zap } from 'lucide-react';
 import './EstablishmentCard.css';
 
 const CATEGORY_LABELS = {
-  supermarket: 'Supermercado',
-  pharmacy: 'Farmácia',
-  bakery: 'Padaria',
-  butcher: 'Açougue',
-  restaurant: 'Restaurante',
-  convenience: 'Conveniência',
-  petshop: 'Pet Shop',
-  electronics: 'Eletrônicos',
-  clothing: 'Vestuário',
-  other: 'Outros',
+  supermarket: 'Supermercado', pharmacy: 'Farmácia', bakery: 'Padaria',
+  butcher: 'Açougue', restaurant: 'Restaurante', convenience: 'Conveniência',
+  petshop: 'Pet Shop', electronics: 'Eletrônicos', clothing: 'Vestuário', other: 'Outros',
 };
 
 const CATEGORY_ICONS = {
-  supermarket: '🛒',
-  pharmacy: '💊',
-  bakery: '🥖',
-  butcher: '🥩',
-  restaurant: '🍽️',
-  convenience: '🏪',
-  petshop: '🐾',
-  electronics: '📱',
-  clothing: '👔',
-  other: '🏬',
+  supermarket: '🛒', pharmacy: '💊', bakery: '🥖', butcher: '🥩',
+  restaurant: '🍽️', convenience: '🏪', petshop: '🐾', electronics: '📱',
+  clothing: '👔', other: '🏬',
 };
 
 function formatDistance(meters) {
@@ -39,17 +25,12 @@ function isOpenNow(businessHours) {
   if (!businessHours || businessHours.length === 0) return null;
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const now = new Date();
-  const dayName = days[now.getDay()];
-  const dayHours = businessHours.find(h => h.day === dayName);
+  const dayHours = businessHours.find(h => h.day === days[now.getDay()]);
   if (!dayHours || dayHours.closed) return false;
-
   const [openH, openM] = dayHours.open.split(':').map(Number);
   const [closeH, closeM] = dayHours.close.split(':').map(Number);
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  const openMinutes = openH * 60 + openM;
-  const closeMinutes = closeH * 60 + closeM;
-
-  return currentMinutes >= openMinutes && currentMinutes < closeMinutes;
+  const cur = now.getHours() * 60 + now.getMinutes();
+  return cur >= openH * 60 + openM && cur < closeH * 60 + closeM;
 }
 
 export default function EstablishmentCard({ establishment }) {
@@ -58,21 +39,21 @@ export default function EstablishmentCard({ establishment }) {
 
   return (
     <Link to={`/establishment/${establishment._id}`} className="est-card">
-      {/* Cover image */}
       <div className="est-card-cover">
         {establishment.coverImage
           ? <img src={establishment.coverImage} alt={establishment.name} loading="lazy" />
           : <div className="est-card-cover-placeholder">{CATEGORY_ICONS[establishment.category] || '🏬'}</div>
         }
         {establishment.isSponsored && (
-          <div className="est-card-sponsored">
-            <Zap size={10} />
-            Patrocinado
+          <div className="est-card-sponsored"><Zap size={10} /> Patrocinado</div>
+        )}
+        {open !== null && (
+          <div className={`est-card-status ${open ? 'open' : 'closed'}`}>
+            {open ? '● Aberto' : '● Fechado'}
           </div>
         )}
       </div>
 
-      {/* Content */}
       <div className="est-card-body">
         <div className="est-card-header">
           {establishment.logo && (
@@ -92,22 +73,10 @@ export default function EstablishmentCard({ establishment }) {
 
         <div className="est-card-footer">
           {dist && (
-            <span className="est-card-meta">
-              <MapPin size={12} />
-              {dist}
-            </span>
-          )}
-          {open !== null && (
-            <span className={`est-card-meta est-card-open ${open ? 'open' : 'closed'}`}>
-              <Clock size={12} />
-              {open ? 'Aberto agora' : 'Fechado'}
-            </span>
+            <span className="est-card-meta"><MapPin size={12} />{dist}</span>
           )}
           {establishment.address?.neighborhood && (
-            <span className="est-card-meta">
-              <MapPin size={12} />
-              {establishment.address.neighborhood}
-            </span>
+            <span className="est-card-meta"><MapPin size={12} />{establishment.address.neighborhood}</span>
           )}
         </div>
       </div>

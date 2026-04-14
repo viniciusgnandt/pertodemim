@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "PertoDeMim",
+    "slug": "pertodemim",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FF5A1F"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.pertodemim.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "O PertoDeMim usa sua localização para mostrar estabelecimentos próximos.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "O PertoDeMim usa sua localização para mostrar estabelecimentos próximos."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FF5A1F"
+      },
+      "package": "com.pertodemim.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-location",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": "Permite acesso seguro à sua conta."
+        }
+      ]
+    ],
+    "scheme": "pertodemim",
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
+    }
+  }
+}

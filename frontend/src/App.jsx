@@ -11,7 +11,6 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
-import AuthCallback from './pages/AuthCallback';
 import { useAuth } from './context/AuthContext';
 
 function ProtectedRoute({ children }) {
@@ -31,7 +30,6 @@ function AppRoutes() {
         <Route path="/search" element={<Search />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/dashboard" element={
           <ProtectedRoute>

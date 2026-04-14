@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import {
-  Store, Package, Zap, Plus, Edit2, Trash2, X, Upload,
-  Check, Clock, AlertCircle, Star
+  Store, Package, Plus, Edit2, Trash2, X, Upload, Check
 } from 'lucide-react';
 import './Dashboard.css';
 
@@ -16,35 +14,21 @@ const DAY_LABELS = { monday: 'Seg', tuesday: 'Ter', wednesday: 'Qua', thursday: 
 
 const DEFAULT_HOURS = DAYS.map(day => ({ day, open: '08:00', close: '18:00', closed: false }));
 
-const BOOST_PACKAGES = [
-  { id: '7days', label: '7 dias', durationDays: 7, amountBRL: 'R$ 29,90', description: 'Ideal para testar' },
-  { id: '15days', label: '15 dias', durationDays: 15, amountBRL: 'R$ 49,90', description: 'Mais popular', popular: true },
-  { id: '30days', label: '30 dias', durationDays: 30, amountBRL: 'R$ 89,90', description: 'Melhor custo-benefício' },
-];
-
 function formatPrice(p) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p);
 }
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('establishment');
   const [establishments, setEstablishments] = useState([]);
   const [selectedEst, setSelectedEst] = useState(null);
   const [products, setProducts] = useState([]);
-  const [boosts, setBoosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showEstForm, setShowEstForm] = useState(false);
   const [editingEst, setEditingEst] = useState(null);
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-
-  // Check boost success
-  useEffect(() => {
-    if (searchParams.get('boost') === 'success') toast.success('Destaque ativado com sucesso! ⚡');
-    if (searchParams.get('boost') === 'cancelled') toast.error('Pagamento cancelado');
-  }, [searchParams]);
 
   useEffect(() => {
     loadData();
@@ -79,17 +63,6 @@ export default function Dashboard() {
     } catch {}
   };
 
-  const loadBoosts = async () => {
-    try {
-      const { data } = await api.get('/boosts/my');
-      setBoosts(data.boosts);
-    } catch {}
-  };
-
-  useEffect(() => {
-    if (activeTab === 'boosts') loadBoosts();
-  }, [activeTab]);
-
   const selectEst = (est) => {
     setSelectedEst(est);
     loadProducts(est._id);
@@ -112,9 +85,6 @@ export default function Dashboard() {
           </button>
           <button className={`dash-tab ${activeTab === 'products' ? 'active' : ''}`} onClick={() => setActiveTab('products')}>
             <Package size={18} /> Produtos
-          </button>
-          <button className={`dash-tab ${activeTab === 'boosts' ? 'active' : ''}`} onClick={() => setActiveTab('boosts')}>
-            <Zap size={18} /> Destaques
           </button>
         </div>
 
@@ -145,13 +115,6 @@ export default function Dashboard() {
                 setShowForm={setShowProductForm}
                 editingProduct={editingProduct}
                 setEditingProduct={setEditingProduct}
-              />
-            )}
-            {activeTab === 'boosts' && (
-              <BoostsTab
-                establishments={establishments}
-                boosts={boosts}
-                onRefresh={loadBoosts}
               />
             )}
           </>
@@ -256,13 +219,13 @@ function EstablishmentForm({ initial, onClose, onSave }) {
     businessHours: initial?.businessHours || DEFAULT_HOURS,
   });
   const [saving, setSaving] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+  const [geocoded, setGeocoded] = useState(!!initial?.location?.coordinates);
 
   const handleChange = (field, value) => setForm(f => ({ ...f, [field]: value }));
-  const handleAddress = (field, value) => setForm(f => ({ ...f, address: { ...f.address, [field]: value } }));
-  const handleCoords = (idx, value) => {
-    const coords = [...form.location.coordinates];
-    coords[idx] = parseFloat(value) || 0;
-    setForm(f => ({ ...f, location: { ...f.location, coordinates: coords } }));
+  const handleAddress = (field, value) => {
+    setGeocoded(false);
+    setForm(f => ({ ...f, address: { ...f.address, [field]: value } }));
   };
   const handleHours = (dayIdx, field, value) => {
     const hours = [...form.businessHours];
@@ -270,8 +233,35 @@ function EstablishmentForm({ initial, onClose, onSave }) {
     setForm(f => ({ ...f, businessHours: hours }));
   };
 
+  const geocodeAddress = async () => {
+    const { street, number, neighborhood, city, state } = form.address;
+    const q = [street, number, neighborhood, city, state, 'Brasil'].filter(Boolean).join(', ');
+    setGeocoding(true);
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`, {
+        headers: { 'Accept-Language': 'pt-BR' },
+      });
+      const data = await res.json();
+      if (!data.length) { toast.error('Endereço não encontrado. Verifique os dados.'); return false; }
+      const { lon, lat } = data[0];
+      setForm(f => ({ ...f, location: { type: 'Point', coordinates: [parseFloat(lon), parseFloat(lat)] } }));
+      setGeocoded(true);
+      toast.success('Localização encontrada!');
+      return true;
+    } catch {
+      toast.error('Erro ao buscar localização');
+      return false;
+    } finally {
+      setGeocoding(false);
+    }
+  };
+
   const handleSubmit = async e => {
     e.preventDefault();
+    if (!geocoded) {
+      const ok = await geocodeAddress();
+      if (!ok) return;
+    }
     setSaving(true);
     try {
       const payload = {
@@ -359,15 +349,10 @@ function EstablishmentForm({ initial, onClose, onSave }) {
               <input className="form-input" value={form.address.zipCode} onChange={e => handleAddress('zipCode', e.target.value)} />
             </div>
           </div>
-          <div className="form-grid-2">
-            <div className="form-group">
-              <label className="form-label">Longitude (ex: -46.1897)</label>
-              <input className="form-input" type="number" step="0.0001" value={form.location.coordinates[0]} onChange={e => handleCoords(0, e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Latitude (ex: -23.5234)</label>
-              <input className="form-input" type="number" step="0.0001" value={form.location.coordinates[1]} onChange={e => handleCoords(1, e.target.value)} />
-            </div>
+          <div className="form-group">
+            <button type="button" className={`btn btn-sm ${geocoded ? 'btn-secondary' : 'btn-primary'}`} onClick={geocodeAddress} disabled={geocoding} style={{ marginTop: 4 }}>
+              {geocoding ? <><div className="spinner" />Localizando...</> : geocoded ? '✓ Localização encontrada — clicar para atualizar' : '📍 Localizar endereço no mapa'}
+            </button>
           </div>
         </fieldset>
 
@@ -629,123 +614,3 @@ function ProductForm({ initial, establishmentId, onClose, onSave }) {
   );
 }
 
-// ---- Boosts Tab ----
-function BoostsTab({ establishments, boosts, onRefresh }) {
-  const [selectedEst, setSelectedEst] = useState(establishments[0]?._id || '');
-  const [purchasing, setPurchasing] = useState(false);
-  const [selectedPkg, setSelectedPkg] = useState('15days');
-
-  const handleBoost = async () => {
-    if (!selectedEst) return toast.error('Selecione um estabelecimento');
-    setPurchasing(true);
-    try {
-      const { data } = await api.post('/boosts/create-checkout', {
-        establishmentId: selectedEst,
-        packageId: selectedPkg,
-      });
-      if (data.devMode) {
-        toast.success(data.message);
-        onRefresh();
-      } else if (data.url) {
-        window.location.href = data.url;
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.error || 'Erro ao criar checkout');
-    } finally {
-      setPurchasing(false);
-    }
-  };
-
-  const statusIcon = (status) => {
-    if (status === 'active') return <Check size={14} className="boost-status-active" />;
-    if (status === 'expired') return <Clock size={14} className="boost-status-expired" />;
-    return <AlertCircle size={14} />;
-  };
-
-  return (
-    <div className="dash-section">
-      <h2>Destaques Patrocinados</h2>
-      <p className="dash-subtitle">Faça seu estabelecimento aparecer primeiro nas buscas</p>
-
-      {/* Purchase section */}
-      <div className="boost-purchase-card">
-        <div className="boost-purchase-header">
-          <Zap size={24} className="boost-zap" />
-          <div>
-            <h3>Ativar Destaque</h3>
-            <p>Seu estabelecimento aparece primeiro, com badge "Patrocinado"</p>
-          </div>
-        </div>
-
-        {establishments.length > 1 && (
-          <div className="form-group" style={{ marginBottom: 16 }}>
-            <label className="form-label">Estabelecimento</label>
-            <select className="form-input" value={selectedEst} onChange={e => setSelectedEst(e.target.value)}>
-              {establishments.map(e => <option key={e._id} value={e._id}>{e.name}</option>)}
-            </select>
-          </div>
-        )}
-
-        <div className="boost-packages">
-          {BOOST_PACKAGES.map(pkg => (
-            <div
-              key={pkg.id}
-              className={`boost-pkg ${selectedPkg === pkg.id ? 'selected' : ''} ${pkg.popular ? 'popular' : ''}`}
-              onClick={() => setSelectedPkg(pkg.id)}
-            >
-              {pkg.popular && <span className="boost-pkg-badge"><Star size={10} /> Popular</span>}
-              <div className="boost-pkg-duration">{pkg.label}</div>
-              <div className="boost-pkg-price">{pkg.amountBRL}</div>
-              <div className="boost-pkg-desc">{pkg.description}</div>
-            </div>
-          ))}
-        </div>
-
-        <button
-          className="btn btn-primary btn-lg boost-activate-btn"
-          onClick={handleBoost}
-          disabled={purchasing || !selectedEst}
-        >
-          {purchasing
-            ? <><div className="spinner" />Processando...</>
-            : <><Zap size={18} />Ativar Destaque</>
-          }
-        </button>
-
-        <p className="boost-note">
-          Em modo de desenvolvimento, o destaque é ativado imediatamente sem cobrança.
-          Configure o Stripe para habilitar pagamentos reais.
-        </p>
-      </div>
-
-      {/* Boost history */}
-      {boosts.length > 0 && (
-        <div className="boost-history">
-          <h3>Histórico de Destaques</h3>
-          <div className="boost-list">
-            {boosts.map(b => (
-              <div key={b._id} className="boost-item">
-                <div className="boost-item-est">
-                  {typeof b.establishmentId === 'object' ? b.establishmentId.name : 'Estabelecimento'}
-                </div>
-                <div className="boost-item-duration">{b.durationDays} dias</div>
-                <div className={`boost-item-status ${b.status}`}>
-                  {statusIcon(b.status)}
-                  {b.status === 'active' ? 'Ativo' : b.status === 'expired' ? 'Expirado' : b.status === 'pending' ? 'Pendente' : 'Cancelado'}
-                </div>
-                {b.endDate && (
-                  <div className="boost-item-date">
-                    até {new Date(b.endDate).toLocaleDateString('pt-BR')}
-                  </div>
-                )}
-                <div className="boost-item-amount">
-                  {formatPrice(b.amount / 100)}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}

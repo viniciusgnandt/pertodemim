@@ -18,11 +18,21 @@ const CATEGORY_LABELS = {
   petshop: 'Pet Shop', electronics: 'Eletrônicos', clothing: 'Vestuário', other: 'Outros',
 };
 
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+const brandIcon = L.divIcon({
+  className: '',
+  html: `<div style="
+    width:40px;height:40px;border-radius:50% 50% 50% 0;
+    background:linear-gradient(135deg,#FF5A1F,#FF2D55);
+    transform:rotate(-45deg);
+    box-shadow:0 4px 16px rgba(255,90,31,0.5);
+    border:3px solid white;
+  "><div style="
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    transform:rotate(45deg);font-size:16px;
+  ">📍</div></div>`,
+  iconSize: [40, 40],
+  iconAnchor: [20, 40],
+  popupAnchor: [0, -44],
 });
 
 export default function EstablishmentDetail() {
@@ -66,6 +76,18 @@ export default function EstablishmentDetail() {
   const [lng, lat] = establishment.location.coordinates;
   const formatPrice = p => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p);
 
+  // Is open now?
+  const todayIdx = new Date().getDay(); // 0=sun
+  const todayKey = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][todayIdx];
+  const todayHours = establishment.businessHours?.find(h => h.day === todayKey);
+  const isOpen = (() => {
+    if (!todayHours || todayHours.closed) return false;
+    const [oh, om] = todayHours.open.split(':').map(Number);
+    const [ch, cm] = todayHours.close.split(':').map(Number);
+    const cur = new Date().getHours() * 60 + new Date().getMinutes();
+    return cur >= oh * 60 + om && cur < ch * 60 + cm;
+  })();
+
   // Group products by category
   const grouped = products.reduce((acc, p) => {
     const cat = p.category || 'Outros';
@@ -104,9 +126,21 @@ export default function EstablishmentDetail() {
           )}
           <div className="est-detail-header-info">
             <h1>{establishment.name}</h1>
-            <span className="badge badge-category">
-              {CATEGORY_LABELS[establishment.category] || establishment.category}
-            </span>
+            <div className="est-detail-badges">
+              <span className="badge badge-category">
+                {CATEGORY_LABELS[establishment.category] || establishment.category}
+              </span>
+              {todayHours && (
+                <span className={`est-detail-open-badge ${isOpen ? 'open' : 'closed'}`}>
+                  {isOpen ? '● Aberto agora' : '● Fechado'}
+                  {todayHours && !todayHours.closed && (
+                    <span style={{ fontWeight: 500, opacity: 0.8 }}>
+                      {isOpen ? ` · fecha às ${todayHours.close}` : ` · abre às ${todayHours.open}`}
+                    </span>
+                  )}
+                </span>
+              )}
+            </div>
             {establishment.description && (
               <p className="est-detail-desc">{establishment.description}</p>
             )}
@@ -149,8 +183,8 @@ export default function EstablishmentDetail() {
                   {hoursOpen && (
                     <div className="est-hours-list">
                       {establishment.businessHours.map(h => (
-                        <div key={h.day} className="est-hours-row">
-                          <span className="est-hours-day">{DAY_LABELS[h.day]}</span>
+                        <div key={h.day} className={`est-hours-row ${h.day === todayKey ? 'est-hours-today' : ''}`}>
+                          <span className="est-hours-day">{DAY_LABELS[h.day]}{h.day === todayKey ? ' (hoje)' : ''}</span>
                           <span className="est-hours-time">
                             {h.closed ? 'Fechado' : `${h.open} - ${h.close}`}
                           </span>
@@ -163,28 +197,39 @@ export default function EstablishmentDetail() {
             </div>
 
             {/* Mini map */}
-            <div className="card est-detail-map-card">
-              <MapContainer
-                center={[lat, lng]}
-                zoom={15}
-                className="est-detail-map"
-                dragging={false}
-                zoomControl={false}
-                scrollWheelZoom={false}
-              >
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <Marker position={[lat, lng]}>
-                  <Popup>{establishment.name}</Popup>
-                </Marker>
-              </MapContainer>
+            <div className="est-detail-map-card">
+              <div className="est-detail-map-wrapper">
+                <MapContainer
+                  center={[lat, lng]}
+                  zoom={16}
+                  className="est-detail-map"
+                  zoomControl={false}
+                  scrollWheelZoom={false}
+                  dragging={true}
+                >
+                  <TileLayer
+                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                    attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+                  />
+                  <Marker position={[lat, lng]} icon={brandIcon}>
+                    <Popup>
+                      <strong>{establishment.name}</strong>
+                      {establishment.address?.formatted && <><br /><span style={{ fontSize: 12, color: '#666' }}>{establishment.address.formatted}</span></>}
+                    </Popup>
+                  </Marker>
+                </MapContainer>
+                <div className="est-detail-map-label">
+                  <MapPin size={13} />
+                  {establishment.address?.neighborhood || establishment.address?.city || 'Ver no mapa'}
+                </div>
+              </div>
               <a
                 href={`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn btn-secondary"
-                style={{ width: '100%', marginTop: 10 }}
+                className="est-detail-map-btn"
               >
-                <MapPin size={16} />
+                <MapPin size={15} />
                 Como chegar
               </a>
             </div>

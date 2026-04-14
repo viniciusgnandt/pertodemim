@@ -31,7 +31,9 @@ export default function Navbar() {
       <div className="navbar-inner">
         {/* Logo */}
         <Link to="/" className="navbar-logo">
-          <MapPin size={22} strokeWidth={2.5} />
+          <div className="navbar-logo-icon">
+            <MapPin size={18} strokeWidth={2.5} />
+          </div>
           <span>Perto<strong>DeMim</strong></span>
         </Link>
 

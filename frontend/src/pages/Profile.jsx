@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, LayoutDashboard, User } from 'lucide-react';
+import { LogOut, LayoutDashboard, ChevronRight } from 'lucide-react';
 import './Profile.css';
 
 export default function Profile() {
@@ -12,8 +12,6 @@ export default function Profile() {
     await logout();
     navigate('/');
   };
-
-  const isOwner = user?.role === 'owner' || user?.role === 'admin';
 
   return (
     <div className="profile-page page-enter">
@@ -26,28 +24,26 @@ export default function Profile() {
         </div>
         <h2 className="profile-name">{user?.name}</h2>
         <p className="profile-email">{user?.email}</p>
-        <span className="profile-role-badge">
-          {isOwner ? '🏪 Estabelecimento' : '👤 Consumidor'}
-        </span>
+        <span className="profile-role-badge">🏪 Estabelecimento</span>
       </div>
 
       <div className="profile-actions">
-        {isOwner && (
-          <button className="profile-action-btn" onClick={() => navigate('/dashboard')}>
-            <LayoutDashboard size={20} />
-            <div>
-              <strong>Dashboard</strong>
-              <span>Gerencie seu estabelecimento</span>
-            </div>
-          </button>
-        )}
+        <button className="profile-action-btn" onClick={() => navigate('/dashboard')}>
+          <div className="profile-action-icon"><LayoutDashboard size={20} /></div>
+          <div>
+            <strong>Dashboard</strong>
+            <span>Gerencie seu estabelecimento</span>
+          </div>
+          <ChevronRight size={18} style={{ color: 'var(--text-light)', marginLeft: 'auto' }} />
+        </button>
 
         <button className="profile-action-btn profile-action-logout" onClick={handleLogout}>
-          <LogOut size={20} />
+          <div className="profile-action-icon"><LogOut size={20} /></div>
           <div>
             <strong>Sair da conta</strong>
             <span>Encerrar sessão</span>
           </div>
+          <ChevronRight size={18} style={{ color: 'var(--red)', marginLeft: 'auto', opacity: 0.5 }} />
         </button>
       </div>
     </div>

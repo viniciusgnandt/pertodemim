@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { MapPin, Mail, Lock, User, Eye, EyeOff, Store, ShoppingBag } from 'lucide-react';
+import { MapPin, Mail, Lock, User, Eye, EyeOff, Store } from 'lucide-react';
 import './Auth.css';
 
 export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'consumer' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'owner' });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -21,9 +21,9 @@ export default function Register() {
     }
     setLoading(true);
     try {
-      const user = await register(form.name, form.email, form.password, form.role);
+      const user = await register(form.name, form.email, form.password, 'owner');
       toast.success(`Conta criada! Bem-vindo, ${user.name.split(' ')[0]}!`);
-      navigate(form.role === 'owner' ? '/dashboard' : '/', { replace: true });
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       toast.error(err.response?.data?.error || 'Erro ao criar conta');
     } finally {
@@ -35,33 +35,19 @@ export default function Register() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <MapPin size={28} />
+          <div className="auth-logo-icon"><MapPin size={20} /></div>
           <span>PertoDeMim</span>
         </div>
 
-        <h1 className="auth-title">Criar conta grátis</h1>
-        <p className="auth-subtitle">Junte-se a milhares de pessoas em Mogi das Cruzes</p>
+        <h1 className="auth-title">Cadastrar estabelecimento</h1>
+        <p className="auth-subtitle">Coloque seu negócio no mapa de Mogi das Cruzes</p>
 
-        {/* Role selector */}
         <div className="role-selector">
-          <button
-            type="button"
-            className={`role-btn ${form.role === 'consumer' ? 'active' : ''}`}
-            onClick={() => setForm(f => ({ ...f, role: 'consumer' }))}
-          >
-            <ShoppingBag size={20} />
-            <span>Sou Consumidor</span>
-            <small>Busco produtos</small>
-          </button>
-          <button
-            type="button"
-            className={`role-btn ${form.role === 'owner' ? 'active' : ''}`}
-            onClick={() => setForm(f => ({ ...f, role: 'owner' }))}
-          >
+          <div className="role-btn active" style={{ cursor: 'default' }}>
             <Store size={20} />
-            <span>Sou Proprietário</span>
-            <small>Tenho estabelecimento</small>
-          </button>
+            <span>Proprietário</span>
+            <small>Cadastro de estabelecimento</small>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">

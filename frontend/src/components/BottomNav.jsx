@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Search, LayoutDashboard, User, LogIn } from 'lucide-react';
+import { Home, Search, LayoutDashboard, LogIn } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import './BottomNav.css';
 
@@ -29,7 +29,7 @@ export default function BottomNav() {
         </NavLink>
       )}
 
-      {user ? (
+      {isOwner ? (
         <NavLink to="/profile" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
           <div className="bottom-nav-avatar">
             {user.avatar

@@ -25,8 +25,6 @@ const userSchema = new mongoose.Schema({
     enum: ['consumer', 'owner', 'admin'],
     default: 'consumer',
   },
-  googleId: { type: String, sparse: true },
-  appleId: { type: String, sparse: true },
   avatar: { type: String },
   refreshTokens: [{ type: String, select: false }],
 }, { timestamps: true });
