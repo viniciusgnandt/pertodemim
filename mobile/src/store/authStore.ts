@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import * as SecureStore from 'expo-secure-store';
+import { storage } from '../utils/storage';
 import api from '../api/axios';
 
 export interface User {
@@ -24,41 +24,41 @@ export const useAuthStore = create<AuthState>((set) => ({
   loading: true,
 
   loadUser: async () => {
-    const token = await SecureStore.getItemAsync('accessToken');
+    const token = await storage.getItem('accessToken');
     if (!token) { set({ loading: false }); return; }
     try {
       const { data } = await api.get('/auth/me');
       set({ user: data.user, loading: false });
     } catch {
-      await SecureStore.deleteItemAsync('accessToken');
-      await SecureStore.deleteItemAsync('refreshToken');
+      await storage.deleteItem('accessToken');
+      await storage.deleteItem('refreshToken');
       set({ user: null, loading: false });
     }
   },
 
   login: async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });
-    await SecureStore.setItemAsync('accessToken', data.accessToken);
-    await SecureStore.setItemAsync('refreshToken', data.refreshToken);
+    await storage.setItem('accessToken', data.accessToken);
+    await storage.setItem('refreshToken', data.refreshToken);
     set({ user: data.user });
     return data.user;
   },
 
   register: async (name, email, password) => {
     const { data } = await api.post('/auth/register', { name, email, password, role: 'consumer' });
-    await SecureStore.setItemAsync('accessToken', data.accessToken);
-    await SecureStore.setItemAsync('refreshToken', data.refreshToken);
+    await storage.setItem('accessToken', data.accessToken);
+    await storage.setItem('refreshToken', data.refreshToken);
     set({ user: data.user });
     return data.user;
   },
 
   logout: async () => {
     try {
-      const refreshToken = await SecureStore.getItemAsync('refreshToken');
+      const refreshToken = await storage.getItem('refreshToken');
       await api.post('/auth/logout', { refreshToken });
     } catch {}
-    await SecureStore.deleteItemAsync('accessToken');
-    await SecureStore.deleteItemAsync('refreshToken');
+    await storage.deleteItem('accessToken');
+    await storage.deleteItem('refreshToken');
     set({ user: null });
   },
 }));
