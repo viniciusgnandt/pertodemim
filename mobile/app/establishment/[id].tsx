@@ -14,6 +14,7 @@ import { Colors } from '../../src/constants/colors';
 import { useAuthStore } from '../../src/store/authStore';
 import ReviewItem from '../../src/components/ReviewItem';
 import StarRating from '../../src/components/StarRating';
+import MapView from '../../src/components/MapView';
 
 export default function EstablishmentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -164,6 +165,19 @@ export default function EstablishmentDetailScreen() {
           )}
         </View>
 
+        {/* Map */}
+        {est.location?.coordinates && (
+          <View style={styles.mapSection}>
+            <MapView
+              lat={est.location.coordinates[1]}
+              lng={est.location.coordinates[0]}
+              name={est.name}
+              neighborhood={est.address?.neighborhood}
+              category={est.category}
+            />
+          </View>
+        )}
+
         {/* Reviews */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -245,6 +259,7 @@ const styles = StyleSheet.create({
   description: { fontSize: 15, color: Colors.textMuted, lineHeight: 22, marginBottom: 16 },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   infoText: { fontSize: 14, color: Colors.text, flex: 1 },
+  mapSection: { paddingHorizontal: 16, paddingBottom: 4 },
   section: { backgroundColor: Colors.white, padding: 20 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: Colors.text },

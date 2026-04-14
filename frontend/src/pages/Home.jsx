@@ -14,15 +14,32 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-const sponsoredIcon = new L.DivIcon({
-  html: `<div style="background:linear-gradient(135deg,#FF5A1F,#FF2D55);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 4px 12px rgba(255,90,31,0.5);font-size:16px;">⚡</div>`,
-  className: '', iconSize: [36, 36], iconAnchor: [18, 18], popupAnchor: [0, -20],
-});
+const CATEGORY_ICON = {
+  supermarket: '🛒', pharmacy: '💊', bakery: '🥖', butcher: '🥩',
+  restaurant: '🍽️', convenience: '🏪', petshop: '🐾', electronics: '📱',
+  clothing: '👔', other: '🏬',
+};
 
-const regularIcon = new L.DivIcon({
-  html: `<div style="background:#1A1A2E;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.25);font-size:13px;">📍</div>`,
-  className: '', iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -17],
-});
+const CATEGORY_COLOR = {
+  supermarket: '#10B981', pharmacy: '#3B82F6', bakery: '#F59E0B',
+  butcher: '#EF4444', restaurant: '#F97316', convenience: '#8B5CF6',
+  petshop: '#EC4899', electronics: '#06B6D4', clothing: '#6366F1', other: '#6B7280',
+};
+
+function makeIcon(est) {
+  if (est.isSponsored) {
+    return new L.DivIcon({
+      html: `<div style="background:linear-gradient(135deg,#FF5A1F,#FF2D55);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 4px 12px rgba(255,90,31,0.5);font-size:16px;">⚡</div>`,
+      className: '', iconSize: [36, 36], iconAnchor: [18, 18], popupAnchor: [0, -22],
+    });
+  }
+  const color = CATEGORY_COLOR[est.category] || '#6B7280';
+  const icon = CATEGORY_ICON[est.category] || '🏬';
+  return new L.DivIcon({
+    html: `<div style="background:${color};width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 3px 10px rgba(0,0,0,0.25);font-size:16px;">${icon}</div>`,
+    className: '', iconSize: [36, 36], iconAnchor: [18, 18], popupAnchor: [0, -22],
+  });
+}
 
 const userIcon = new L.DivIcon({
   html: `<div style="background:#3B82F6;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 5px rgba(59,130,246,0.25);"></div>`,
@@ -119,21 +136,22 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="container">
-        {/* Filters bar */}
-        <div className="home-filters">
-          <div className="home-filters-categories">
+      {/* Filters bar — outside map container to avoid Leaflet CSS leak */}
+      <div className="container" style={{ contain: 'layout style' }}>
+        <div className="home-filters" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 12, padding: '20px 0 12px' }}>
+          <div className="home-filters-categories" style={{ display: 'flex', flexDirection: 'row', gap: 8, flex: 1, minWidth: 0, overflowX: 'auto' }}>
             {CATEGORIES.map(cat => (
               <button
                 key={cat.value}
                 className={`filter-chip ${category === cat.value ? 'active' : ''}`}
                 onClick={() => setCategory(cat.value)}
+                style={{ display: 'inline-flex', flexDirection: 'row', alignItems: 'center', height: 'auto', width: 'auto', flexShrink: 0 }}
               >
                 {cat.label}
               </button>
             ))}
           </div>
-          <div className="home-filters-actions">
+          <div className="home-filters-actions" style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             <div className="view-toggle">
               <button className={`view-toggle-btn ${view === 'list' ? 'active' : ''}`} onClick={() => setView('list')} title="Lista">
                 <List size={16} />
@@ -159,7 +177,9 @@ export default function Home() {
             </div>
           </div>
         )}
+      </div>
 
+      <div className="container">
         {/* Map view */}
         {view === 'map' && (
           <div className="home-map-wrapper">
@@ -182,14 +202,14 @@ export default function Home() {
                 <Marker
                   key={est._id}
                   position={[est.location.coordinates[1], est.location.coordinates[0]]}
-                  icon={est.isSponsored ? sponsoredIcon : regularIcon}
+                  icon={makeIcon(est)}
                 >
                   <Popup>
                     <div style={{ minWidth: 180 }}>
                       <strong style={{ fontSize: 14 }}>{est.name}</strong>
                       {est.isSponsored && <span style={{ display: 'block', color: '#FF5A1F', fontSize: 11, fontWeight: 700, marginTop: 2 }}>⚡ Patrocinado</span>}
                       {est.address?.neighborhood && <p style={{ fontSize: 12, color: '#666', margin: '4px 0 6px' }}>{est.address.neighborhood}</p>}
-                      <a href={`/establishment/${est._id}`} style={{ color: '#FF5A1F', fontWeight: 700, fontSize: 13 }}>Ver estabelecimento →</a>
+                      <Link to={`/establishment/${est._id}`} style={{ color: '#FF5A1F', fontWeight: 700, fontSize: 13 }}>Ver estabelecimento →</Link>
                     </div>
                   </Popup>
                 </Marker>

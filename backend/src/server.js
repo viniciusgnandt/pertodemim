@@ -20,14 +20,24 @@ app.use(morgan('dev'));
 
 app.use(cors({
   origin: (origin, callback) => {
+// Allow requests with no origin (native mobile apps)
+    if (!origin) return callback(null, true);
+
     const allowed = [
       process.env.FRONTEND_URL || 'http://localhost:5173',
       'http://localhost:4173',
-      'http://localhost:19000',
-      'http://localhost:19006',
-      'exp://localhost:19000',
+      'http://localhost:8081',
+      'http://localhost:8082',
     ];
-    if (!origin || allowed.includes(origin)) return callback(null, true);
+
+    // Allow any Expo origin (local dev and EAS Update)
+    if (
+      allowed.includes(origin) ||
+      origin.startsWith('exp://') ||
+      origin.startsWith('https://u.expo.dev') ||
+      origin.startsWith('https://expo.dev')
+    ) return callback(null, true);
+
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,

@@ -89,22 +89,26 @@
 
 /* ── Filters ── */
 .home-filters {
-  display: flex;
+  display: flex !important;
+  flex-direction: row !important;
   align-items: center;
   gap: 12px;
   padding: 20px 0 12px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
 }
-.home-filters::-webkit-scrollbar { display: none; }
+
 
 .home-filters-categories {
-  display: flex;
+  display: flex !important;
+  flex-direction: row !important;
   gap: 8px;
   flex: 1;
+  min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
+  padding-bottom: 4px;
 }
 .home-filters-categories::-webkit-scrollbar { display: none; }
 
@@ -112,13 +116,18 @@
   background: white;
   border: 1.5px solid var(--border);
   border-radius: 40px;
-  padding: 7px 16px;
+  padding: 7px 14px;
   font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
   transition: all 0.2s;
   color: var(--text-muted);
   letter-spacing: -0.01em;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
 }
 .filter-chip:hover { border-color: var(--primary); color: var(--primary); }
 .filter-chip.active {

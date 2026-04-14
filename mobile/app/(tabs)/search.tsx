@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, FlatList, StyleSheet,
   ActivityIndicator, TouchableOpacity, SectionList,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -26,21 +26,31 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export default function SearchScreen() {
   const router = useRouter();
-  const [query, setQuery] = useState('');
-  const [search, setSearch] = useState('');
+  const params = useLocalSearchParams<{ q?: string }>();
+  const [query, setQuery] = useState(params.q || '');
+  const [search, setSearch] = useState(params.q || '');
   const [category, setCategory] = useState('');
+
+  useEffect(() => {
+    if (params.q) {
+      setQuery(params.q);
+      setSearch(params.q);
+    }
+  }, [params.q]);
 
   // Product search (when there's a text query)
   const { data: productData, isLoading: productLoading } = useQuery({
-    queryKey: ['products', 'search', search],
+    queryKey: ['products', 'search', search, category],
     queryFn: async () => {
-      const { data } = await api.get('/products/search', { params: { q: search, limit: '50' } });
+      const params: Record<string, string> = { q: search, limit: '50' };
+      if (category) params.category = category;
+      const { data } = await api.get('/products/search', { params });
       return data.products as any[];
     },
     enabled: search.length > 1,
   });
 
-  // Establishment search (when there's only a category filter)
+  // Establishment search (category filter or text search)
   const { data: estData, isLoading: estLoading } = useQuery({
     queryKey: ['establishments', 'search', search, category],
     queryFn: async () => {
@@ -50,7 +60,7 @@ export default function SearchScreen() {
       const { data } = await api.get('/establishments', { params });
       return data.establishments as any[];
     },
-    enabled: !search && !!category,
+    enabled: !!category || search.length > 1,
   });
 
   const isLoading = productLoading || estLoading;
@@ -127,7 +137,7 @@ export default function SearchScreen() {
   );
 
   // Category-only search: show EstablishmentCards
-  if (!search && category) {
+  if (!search && !!category) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <FlatList
@@ -215,8 +225,23 @@ export default function SearchScreen() {
           ListHeaderComponent={
             <>
               {SearchHeader}
+              {!isLoading && (estData || []).length > 0 && (
+                <>
+                  <Text style={styles.resultsCount}>
+                    {(estData || []).length} estabelecimento{(estData || []).length !== 1 ? 's' : ''}
+                  </Text>
+                  {(estData || []).map((item: any) => (
+                    <View key={item._id} style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
+                      <EstablishmentCard
+                        establishment={item}
+                        onPress={() => router.push(`/establishment/${item._id}`)}
+                      />
+                    </View>
+                  ))}
+                </>
+              )}
               {!isLoading && totalProducts > 0 && (
-                <Text style={styles.resultsCount}>
+                <Text style={[styles.resultsCount, { marginTop: 8 }]}>
                   {totalProducts} produto{totalProducts !== 1 ? 's' : ''} em {sections.length} estabelecimento{sections.length !== 1 ? 's' : ''}
                 </Text>
               )}

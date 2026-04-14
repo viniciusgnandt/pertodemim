@@ -83,7 +83,11 @@ export default function EstablishmentCard({ establishment: est, onPress }: Props
           )}
         </View>
 
-        <Text style={styles.category}>{CATEGORY_LABELS[est.category] || est.category}</Text>
+        <View style={styles.categoryBadge}>
+          <Text style={styles.categoryBadgeText}>
+            {CATEGORY_ICONS[est.category] || '🏬'} {CATEGORY_LABELS[est.category] || est.category}
+          </Text>
+        </View>
 
         {est.address?.street && (
           <View style={styles.addressRow}>
@@ -148,7 +152,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10,
   },
   distanceText: { fontSize: 11, color: Colors.primary, fontWeight: '800' },
-  category: { fontSize: 12, color: Colors.primary, fontWeight: '700' },
+  categoryBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  categoryBadgeText: { fontSize: 11, fontWeight: '700', color: Colors.textMuted },
   addressRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
   address: { fontSize: 12, color: Colors.textLight, fontWeight: '500', flex: 1 },
 });

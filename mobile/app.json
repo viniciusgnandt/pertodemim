@@ -27,7 +27,13 @@
       "package": "com.pertodemim.app",
       "permissions": [
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
     "web": {
@@ -44,6 +50,18 @@
       ]
     ],
     "scheme": "pertodemim",
-    "extra": {}
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "465b930c-5c55-4445-b36e-660ac6593ce8"
+      }
+    },
+    "owner": "viniciusgnandt",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/465b930c-5c55-4445-b36e-660ac6593ce8"
+    }
   }
 }
