@@ -10,6 +10,7 @@ import Search from './pages/Search';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import Integrations from './pages/Integrations';
 import Profile from './pages/Profile';
 import { useAuth } from './context/AuthContext';
 
@@ -32,9 +33,10 @@ function AppRoutes() {
         <Route path="/register" element={<Register />} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
+          <ProtectedRoute><Dashboard /></ProtectedRoute>
+        } />
+        <Route path="/dashboard/integrations" element={
+          <ProtectedRoute><Integrations /></ProtectedRoute>
         } />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

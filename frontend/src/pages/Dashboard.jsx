@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
+import * as XLSX from 'xlsx';
 import {
   Store, Package, Plus, Edit2, Trash2, X, Upload, Check, Wrench, Clock,
-  Download, FileText, AlertCircle
+  Download, FileText, AlertCircle, ChevronLeft, Plug, RefreshCw
 } from 'lucide-react';
 import './Dashboard.css';
 
@@ -82,155 +84,160 @@ function formatPrice(p) {
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('establishment');
   const [establishments, setEstablishments] = useState([]);
-  const [selectedEst, setSelectedEst] = useState(null);
-  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showEstForm, setShowEstForm] = useState(false);
   const [editingEst, setEditingEst] = useState(null);
-  const [showProductForm, setShowProductForm] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
-  const [services, setServices] = useState([]);
-  const [showServiceForm, setShowServiceForm] = useState(false);
-  const [editingService, setEditingService] = useState(null);
+  // null = list view; an est object = detail view
+  const [openEst, setOpenEst] = useState(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [estRes] = await Promise.all([
-        api.get('/establishments', { params: { limit: 50 } }),
-      ]);
-      // Filter establishments owned by current user
-      const myEsts = estRes.data.establishments.filter(
-        e => (e.ownerId?._id || e.ownerId) === user._id
-      );
+      const { data } = await api.get('/establishments', { params: { limit: 50 } });
+      const myEsts = data.establishments.filter(e => (e.ownerId?._id || e.ownerId) === user._id);
       setEstablishments(myEsts);
-      if (myEsts.length > 0 && !selectedEst) {
-        setSelectedEst(myEsts[0]);
-        loadProducts(myEsts[0]._id);
-        loadServices(myEsts[0]._id);
-      }
-    } catch (err) {
+    } catch {
       toast.error('Erro ao carregar dados');
     } finally {
       setLoading(false);
     }
   };
 
-  const loadProducts = async (estId) => {
-    try {
-      const { data } = await api.get(`/establishments/${estId}/products`);
-      setProducts(data.products);
-    } catch {}
-  };
-
-  const loadServices = async (estId) => {
-    try {
-      const { data } = await api.get(`/establishments/${estId}/services`);
-      setServices(data.services);
-    } catch {}
-  };
-
-  const selectEst = (est) => {
-    setSelectedEst(est);
-    loadProducts(est._id);
-    loadServices(est._id);
-  };
+  const handleOpenEst = (est) => { setOpenEst(est); };
+  const handleBack = () => { setOpenEst(null); };
 
   return (
     <div className="dashboard page-enter">
       <div className="dashboard-header">
-        <div className="container">
-          <h1>Dashboard</h1>
-          <p>Gerencie seu estabelecimento, produtos e destaques</p>
+        <div className="container dashboard-header-inner">
+          <div>
+            <h1>{openEst ? openEst.name : 'Dashboard'}</h1>
+            <p>{openEst ? (CATEGORY_LABELS[openEst.category] || openEst.category) : 'Gerencie seus estabelecimentos'}</p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {openEst && (
+              <button className="dash-back-btn" onClick={handleBack}>
+                <ChevronLeft size={14} /> Voltar
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       <div className="container dashboard-body">
-        {/* Tabs */}
-        <div className="dashboard-tabs">
-          <button className={`dash-tab ${activeTab === 'establishment' ? 'active' : ''}`} onClick={() => setActiveTab('establishment')}>
-            <Store size={18} /> Estabelecimento
-          </button>
-          <button className={`dash-tab ${activeTab === 'products' ? 'active' : ''}`} onClick={() => setActiveTab('products')}>
-            <Package size={18} /> Produtos
-          </button>
-          <button className={`dash-tab ${activeTab === 'services' ? 'active' : ''}`} onClick={() => setActiveTab('services')}>
-            <Wrench size={18} /> Serviços
-          </button>
-          <button className={`dash-tab ${activeTab === 'hours' ? 'active' : ''}`} onClick={() => setActiveTab('hours')}>
-            <Clock size={18} /> Horários
-          </button>
-        </div>
-
         {loading ? (
           <div className="dash-loading"><div className="spinner spinner-dark" /></div>
+        ) : openEst ? (
+          <EstablishmentDetail
+            est={openEst}
+            onBack={handleBack}
+            onRefresh={loadData}
+            onEditEst={(est) => { setEditingEst(est); setShowEstForm(true); }}
+          />
         ) : (
-          <>
-            {activeTab === 'establishment' && (
-              <EstablishmentTab
-                establishments={establishments}
-                selectedEst={selectedEst}
-                onSelect={selectEst}
-                onRefresh={loadData}
-                showForm={showEstForm}
-                setShowForm={setShowEstForm}
-                editingEst={editingEst}
-                setEditingEst={setEditingEst}
-              />
-            )}
-            {activeTab === 'products' && (
-              <ProductsTab
-                establishments={establishments}
-                selectedEst={selectedEst}
-                setSelectedEst={(e) => { setSelectedEst(e); loadProducts(e._id); }}
-                products={products}
-                onRefresh={() => selectedEst && loadProducts(selectedEst._id)}
-                showForm={showProductForm}
-                setShowForm={setShowProductForm}
-                editingProduct={editingProduct}
-                setEditingProduct={setEditingProduct}
-              />
-            )}
-            {activeTab === 'services' && (
-              <ServicesTab
-                establishments={establishments}
-                selectedEst={selectedEst}
-                setSelectedEst={(e) => { setSelectedEst(e); loadServices(e._id); }}
-                services={services}
-                onRefresh={() => selectedEst && loadServices(selectedEst._id)}
-                showForm={showServiceForm}
-                setShowForm={setShowServiceForm}
-                editingService={editingService}
-                setEditingService={setEditingService}
-              />
-            )}
-            {activeTab === 'hours' && (
-              <HoursTab
-                establishments={establishments}
-                selectedEst={selectedEst}
-                setSelectedEst={selectEst}
-                onRefresh={loadData}
-              />
-            )}
-          </>
+          <EstablishmentList
+            establishments={establishments}
+            onOpen={handleOpenEst}
+            onRefresh={loadData}
+            showForm={showEstForm}
+            setShowForm={setShowEstForm}
+            editingEst={editingEst}
+            setEditingEst={setEditingEst}
+          />
         )}
       </div>
     </div>
   );
 }
 
-// ---- Establishment Tab ----
-function EstablishmentTab({ establishments, selectedEst, onSelect, onRefresh, showForm, setShowForm, editingEst, setEditingEst }) {
-  const handleDelete = async (id) => {
+// ---- Establishment Detail (tabs inside) ----
+function EstablishmentDetail({ est, onBack, onRefresh, onEditEst }) {
+  const [activeTab, setActiveTab] = useState('products');
+  const [products, setProducts] = useState([]);
+  const [services, setServices] = useState([]);
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [showServiceForm, setShowServiceForm] = useState(false);
+  const [editingService, setEditingService] = useState(null);
+
+  useEffect(() => {
+    loadProducts();
+    loadServices();
+  }, [est._id]);
+
+  const loadProducts = async () => {
+    try { const { data } = await api.get(`/establishments/${est._id}/products`); setProducts(data.products); } catch {}
+  };
+  const loadServices = async () => {
+    try { const { data } = await api.get(`/establishments/${est._id}/services`); setServices(data.services); } catch {}
+  };
+
+  return (
+    <div className="dash-section">
+      <div className="dashboard-tabs">
+        <button className={`dash-tab ${activeTab === 'products' ? 'active' : ''}`} onClick={() => setActiveTab('products')}>
+          <Package size={18} /> Produtos
+        </button>
+        <button className={`dash-tab ${activeTab === 'services' ? 'active' : ''}`} onClick={() => setActiveTab('services')}>
+          <Wrench size={18} /> Serviços
+        </button>
+        <button className={`dash-tab ${activeTab === 'hours' ? 'active' : ''}`} onClick={() => setActiveTab('hours')}>
+          <Clock size={18} /> Horários
+        </button>
+        <button className={`dash-tab ${activeTab === 'info' ? 'active' : ''}`} onClick={() => setActiveTab('info')}>
+          <Store size={18} /> Informações
+        </button>
+      </div>
+
+      {activeTab === 'products' && (
+        <ProductsTab
+          establishments={[est]}
+          selectedEst={est}
+          setSelectedEst={() => {}}
+          products={products}
+          onRefresh={loadProducts}
+          showForm={showProductForm}
+          setShowForm={setShowProductForm}
+          editingProduct={editingProduct}
+          setEditingProduct={setEditingProduct}
+        />
+      )}
+      {activeTab === 'services' && (
+        <ServicesTab
+          establishments={[est]}
+          selectedEst={est}
+          setSelectedEst={() => {}}
+          services={services}
+          onRefresh={loadServices}
+          showForm={showServiceForm}
+          setShowForm={setShowServiceForm}
+          editingService={editingService}
+          setEditingService={setEditingService}
+        />
+      )}
+      {activeTab === 'hours' && (
+        <HoursTab
+          establishments={[est]}
+          selectedEst={est}
+          setSelectedEst={() => {}}
+          onRefresh={onRefresh}
+        />
+      )}
+      {activeTab === 'info' && (
+        <EstablishmentInfoTab est={est} onEdit={onEditEst} onRefresh={onRefresh} />
+      )}
+    </div>
+  );
+}
+
+function EstablishmentInfoTab({ est, onEdit, onRefresh }) {
+  const handleDelete = async () => {
     if (!confirm('Deletar este estabelecimento? Todos os produtos serão removidos.')) return;
     try {
-      await api.delete(`/establishments/${id}`);
+      await api.delete(`/establishments/${est._id}`);
       toast.success('Estabelecimento removido');
       onRefresh();
     } catch (err) {
@@ -238,6 +245,32 @@ function EstablishmentTab({ establishments, selectedEst, onSelect, onRefresh, sh
     }
   };
 
+  return (
+    <div className="est-info-tab">
+      <div className="est-info-cover">
+        {est.coverImage
+          ? <img src={est.coverImage} alt="Capa" className="est-info-cover-img" />
+          : <div className="est-info-cover-empty">📷</div>}
+        {est.logo && <img src={est.logo} alt="Logo" className="est-info-logo" />}
+      </div>
+      <div className="est-info-body">
+        <div className="est-info-row"><span>Nome</span><strong>{est.name}</strong></div>
+        {est.description && <div className="est-info-row"><span>Descrição</span><strong>{est.description}</strong></div>}
+        <div className="est-info-row"><span>Categoria</span><strong>{CATEGORY_LABELS[est.category] || est.category}</strong></div>
+        {est.address?.street && <div className="est-info-row"><span>Endereço</span><strong>{est.address.street}{est.address.number ? `, ${est.address.number}` : ''} — {est.address.city}</strong></div>}
+        {est.phone && <div className="est-info-row"><span>Telefone</span><strong>{est.phone}</strong></div>}
+        {est.website && <div className="est-info-row"><span>Site</span><strong>{est.website}</strong></div>}
+      </div>
+      <div className="est-info-actions">
+        <button className="btn btn-secondary" onClick={() => onEdit(est)}><Edit2 size={15} /> Editar</button>
+        <button className="btn btn-ghost est-delete-btn" onClick={handleDelete}><Trash2 size={15} /> Excluir</button>
+      </div>
+    </div>
+  );
+}
+
+// ---- Establishment List ----
+function EstablishmentList({ establishments, onOpen, onRefresh, showForm, setShowForm, editingEst, setEditingEst }) {
   return (
     <div className="dash-section">
       <div className="dash-section-header">
@@ -265,27 +298,23 @@ function EstablishmentTab({ establishments, selectedEst, onSelect, onRefresh, sh
           </button>
         </div>
       ) : (
-        <div className="est-list">
+        <div className="est-cards-grid">
           {establishments.map(est => (
-            <div key={est._id} className={`est-list-item ${selectedEst?._id === est._id ? 'selected' : ''}`}>
-              <div className="est-list-item-info" onClick={() => onSelect(est)}>
-                {est.logo && <img src={est.logo} alt="" className="est-list-logo" />}
-                <div>
-                  <p className="est-list-name">{est.name}</p>
-                  <p className="est-list-cat">{CATEGORY_LABELS[est.category] || est.category}</p>
-                  {est.isSponsored && (
-                    <span className="badge badge-sponsored" style={{ fontSize: 10, marginTop: 4 }}>
-                      <Zap size={8} /> Patrocinado
-                    </span>
-                  )}
-                </div>
+            <div key={est._id} className="est-card-dash" onClick={() => onOpen(est)}>
+              <div className="est-card-dash-cover">
+                {est.coverImage
+                  ? <img src={est.coverImage} alt="Capa" />
+                  : <div className="est-card-dash-cover-empty">🏪</div>}
+                {est.logo && <img src={est.logo} alt="Logo" className="est-card-dash-logo" />}
               </div>
-              <div className="est-list-actions">
-                <button className="btn btn-ghost btn-sm" onClick={() => { setEditingEst(est); setShowForm(true); }}>
+              <div className="est-card-dash-body">
+                <p className="est-card-dash-name">{est.name}</p>
+                <p className="est-card-dash-cat">{CATEGORY_LABELS[est.category] || est.category}</p>
+                {est.address?.city && <p className="est-card-dash-city">{est.address.city}</p>}
+              </div>
+              <div className="est-card-dash-actions" onClick={e => e.stopPropagation()}>
+                <button className="btn btn-ghost btn-sm" title="Editar" onClick={() => { setEditingEst(est); setShowForm(true); }}>
                   <Edit2 size={14} />
-                </button>
-                <button className="btn btn-ghost btn-sm est-delete-btn" onClick={() => handleDelete(est._id)}>
-                  <Trash2 size={14} />
                 </button>
               </div>
             </div>
@@ -526,6 +555,186 @@ function downloadCSVTemplate() {
   URL.revokeObjectURL(url);
 }
 
+function downloadXLSXTemplate() {
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['nome', 'preco', 'categoria', 'descricao'],
+    ['Arroz Camil 5kg', 28.90, 'Mercearia', 'Arroz tipo 1 grãos longos'],
+    ['Feijão Carioca 1kg', 9.49, 'Mercearia', 'Feijão carioca selecionado'],
+    ['Leite Integral 1L', 4.89, 'Laticínios', ''],
+    ['Refrigerante 2L', 9.99, 'Bebidas', ''],
+  ]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Produtos');
+  XLSX.writeFile(wb, 'modelo-produtos.xlsx');
+}
+
+const JSON_TEMPLATE = JSON.stringify([
+  { nome: 'Arroz Camil 5kg', preco: 28.90, categoria: 'Mercearia', descricao: 'Arroz tipo 1 grãos longos' },
+  { nome: 'Feijão Carioca 1kg', preco: 9.49, categoria: 'Mercearia', descricao: 'Feijão carioca selecionado' },
+  { nome: 'Leite Integral 1L', preco: 4.89, categoria: 'Laticínios', descricao: '' },
+  { nome: 'Refrigerante 2L', preco: 9.99, categoria: 'Bebidas', descricao: '' },
+], null, 2);
+
+function downloadJSONTemplate() {
+  const blob = new Blob([JSON_TEMPLATE], { type: 'application/json;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'modelo-produtos.json'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+const XML_TEMPLATE = `<?xml version="1.0" encoding="UTF-8"?>
+<produtos>
+  <produto>
+    <nome>Arroz Camil 5kg</nome>
+    <preco>28.90</preco>
+    <categoria>Mercearia</categoria>
+    <descricao>Arroz tipo 1 grãos longos</descricao>
+  </produto>
+  <produto>
+    <nome>Feijão Carioca 1kg</nome>
+    <preco>9.49</preco>
+    <categoria>Mercearia</categoria>
+    <descricao>Feijão carioca selecionado</descricao>
+  </produto>
+  <produto>
+    <nome>Leite Integral 1L</nome>
+    <preco>4.89</preco>
+    <categoria>Laticínios</categoria>
+    <descricao></descricao>
+  </produto>
+</produtos>`;
+
+function downloadXMLTemplate() {
+  const blob = new Blob([XML_TEMPLATE], { type: 'application/xml;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'modelo-produtos.xml'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function parseXLSX(buffer) {
+  try {
+    const wb = XLSX.read(buffer, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
+    if (data.length < 2) return { rows: [], errors: ['Arquivo vazio ou sem dados.'] };
+    const headers = data[0].map(h => String(h).trim().toLowerCase());
+    const required = ['nome', 'preco'];
+    const missing = required.filter(r => !headers.includes(r));
+    if (missing.length) return { rows: [], errors: [`Colunas obrigatórias faltando: ${missing.join(', ')}`] };
+    const rows = [];
+    const errors = [];
+    for (let i = 1; i < data.length; i++) {
+      const cols = data[i];
+      const row = {};
+      headers.forEach((h, idx) => row[h] = cols[idx] != null ? String(cols[idx]).trim() : '');
+      if (!row.nome) { errors.push(`Linha ${i + 1}: nome vazio`); continue; }
+      const price = parseFloat(String(row.preco).replace(',', '.'));
+      if (isNaN(price) || price < 0) { errors.push(`Linha ${i + 1}: preço inválido ("${row.preco}")`); continue; }
+      rows.push({ name: row.nome, price, category: row.categoria || '', description: row.descricao || '' });
+    }
+    return { rows, errors };
+  } catch (e) {
+    return { rows: [], errors: ['Erro ao ler o arquivo Excel.'] };
+  }
+}
+
+function parseJSON(text) {
+  try {
+    const data = JSON.parse(text);
+    const arr = Array.isArray(data) ? data : data.produtos || data.products || [];
+    if (!arr.length) return { rows: [], errors: ['Nenhum produto encontrado no arquivo.'] };
+    const rows = [];
+    const errors = [];
+    arr.forEach((item, i) => {
+      const nome = item.nome || item.name || '';
+      const preco = item.preco ?? item.price ?? item.preço;
+      if (!nome) { errors.push(`Item ${i + 1}: campo "nome" vazio`); return; }
+      const price = parseFloat(String(preco).replace(',', '.'));
+      if (isNaN(price) || price < 0) { errors.push(`Item ${i + 1}: preço inválido ("${preco}")`); return; }
+      rows.push({ name: nome, price, category: item.categoria || item.category || '', description: item.descricao || item.description || '' });
+    });
+    return { rows, errors };
+  } catch {
+    return { rows: [], errors: ['JSON inválido. Verifique a estrutura do arquivo.'] };
+  }
+}
+
+function parseXML(text) {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(text, 'application/xml');
+    const parseErr = doc.querySelector('parsererror');
+    if (parseErr) return { rows: [], errors: ['XML inválido. Verifique a estrutura do arquivo.'] };
+    const items = Array.from(doc.querySelectorAll('produto, product, item'));
+    if (!items.length) return { rows: [], errors: ['Nenhum elemento <produto> encontrado no XML.'] };
+    const rows = [];
+    const errors = [];
+    const txt = (el, ...tags) => { for (const t of tags) { const n = el.querySelector(t); if (n) return n.textContent.trim(); } return ''; };
+    items.forEach((el, i) => {
+      const nome = txt(el, 'nome', 'name');
+      const precoRaw = txt(el, 'preco', 'price', 'preço');
+      if (!nome) { errors.push(`Item ${i + 1}: campo <nome> vazio`); return; }
+      const price = parseFloat(precoRaw.replace(',', '.'));
+      if (isNaN(price) || price < 0) { errors.push(`Item ${i + 1}: preço inválido ("${precoRaw}")`); return; }
+      rows.push({ name: nome, price, category: txt(el, 'categoria', 'category'), description: txt(el, 'descricao', 'description') });
+    });
+    return { rows, errors };
+  } catch {
+    return { rows: [], errors: ['Erro ao processar o arquivo XML.'] };
+  }
+}
+
+function parseNFe(text) {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(text, 'application/xml');
+    const parseErr = doc.querySelector('parsererror');
+    if (parseErr) return { rows: [], errors: ['XML inválido. Verifique se é uma NFe válida.'] };
+    // NFe products are inside <det> elements, each with <prod>
+    const dets = Array.from(doc.querySelectorAll('det'));
+    if (!dets.length) return { rows: [], errors: ['Nenhum item encontrado. Verifique se o arquivo é uma NFe.'] };
+    const rows = [];
+    const errors = [];
+    dets.forEach((det, i) => {
+      const prod = det.querySelector('prod');
+      if (!prod) { errors.push(`Item ${i + 1}: elemento <prod> não encontrado`); return; }
+      const txt = (tag) => prod.querySelector(tag)?.textContent.trim() || '';
+      const nome = txt('xProd');
+      // vUnCom = unit price, vProd = total value
+      const precoRaw = txt('vUnCom') || txt('vProd');
+      if (!nome) { errors.push(`Item ${i + 1}: nome do produto vazio`); return; }
+      const price = parseFloat(precoRaw.replace(',', '.'));
+      if (isNaN(price) || price < 0) { errors.push(`Item ${i + 1}: preço inválido ("${precoRaw}")`); return; }
+      // NCM can hint at category; use xProd as description fallback
+      rows.push({ name: nome, price, category: '', description: '' });
+    });
+    return { rows, errors };
+  } catch {
+    return { rows: [], errors: ['Erro ao processar a NFe.'] };
+  }
+
+}
+
+async function fetchGoogleSheet(url) {
+  try {
+    // Extract spreadsheet ID and optionally gid
+    const idMatch = url.match(/\/d\/([\w-]+)/);
+    if (!idMatch) return { rows: [], errors: ['URL inválida. Use o link de compartilhamento da planilha.'] };
+    const id = idMatch[1];
+    const gidMatch = url.match(/[?&#]gid=(\d+)/);
+    const gid = gidMatch ? gidMatch[1] : '0';
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`;
+    const res = await fetch(csvUrl);
+    if (!res.ok) return { rows: [], errors: ['Não foi possível acessar a planilha. Verifique se ela está pública ("Qualquer pessoa com o link").'] };
+    const text = await res.text();
+    return parseCSV(text);
+  } catch {
+    return { rows: [], errors: ['Erro ao buscar a planilha. Verifique a URL e as permissões.'] };
+  }
+}
+
 function parseCSV(text) {
   const lines = text.trim().split('\n').filter(Boolean);
   if (lines.length < 2) return { rows: [], errors: ['Arquivo vazio ou sem dados.'] };
@@ -548,10 +757,487 @@ function parseCSV(text) {
   return { rows, errors };
 }
 
+const IMPORT_FORMATS = [
+  {
+    key: 'xlsx',
+    label: 'Excel',
+    icon: '📊',
+    description: 'Arquivo .xlsx do Microsoft Excel ou Google Sheets',
+    accept: '.xlsx,.xls',
+    template: downloadXLSXTemplate,
+  },
+  {
+    key: 'nfe',
+    label: 'NFe',
+    icon: '🧾',
+    description: 'XML de Nota Fiscal Eletrônica',
+    accept: '.xml,application/xml,text/xml',
+  },
+  {
+    key: 'csv',
+    label: 'CSV',
+    icon: '📄',
+    description: 'Planilha de texto separada por vírgulas',
+    accept: '.csv,text/csv',
+    template: downloadCSVTemplate,
+  },
+  {
+    key: 'json',
+    label: 'JSON',
+    icon: '🗂️',
+    description: 'Array de objetos no formato JSON',
+    accept: '.json,application/json',
+    template: downloadJSONTemplate,
+  },
+  {
+    key: 'xml',
+    label: 'XML',
+    icon: '🧩',
+    description: 'Lista de <produto> em formato XML',
+    accept: '.xml,application/xml,text/xml',
+    template: downloadXMLTemplate,
+  },
+];
+
+function ImportModal({ onClose, onParsed }) {
+  const fileRefs = useRef({});
+  const [sheetUrl, setSheetUrl] = useState('');
+  const [sheetLoading, setSheetLoading] = useState(false);
+
+  const handleFile = (fmt, e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    e.target.value = '';
+    if (fmt === 'xlsx') {
+      const reader = new FileReader();
+      reader.onload = (ev) => { onParsed(parseXLSX(new Uint8Array(ev.target.result))); onClose(); };
+      reader.readAsArrayBuffer(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const result = fmt === 'csv' ? parseCSV(ev.target.result)
+          : fmt === 'json' ? parseJSON(ev.target.result)
+          : fmt === 'nfe' ? parseNFe(ev.target.result)
+          : parseXML(ev.target.result);
+        onParsed(result);
+        onClose();
+      };
+      reader.readAsText(file, 'UTF-8');
+    }
+  };
+
+  const handleGSheets = async () => {
+    if (!sheetUrl.trim()) return;
+    setSheetLoading(true);
+    const result = await fetchGoogleSheet(sheetUrl.trim());
+    setSheetLoading(false);
+    onParsed(result);
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box import-modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <h3 className="modal-title">Importar Produtos</h3>
+            <p className="modal-subtitle">Escolha o formato. Baixe o modelo para ver a estrutura esperada.</p>
+          </div>
+          <button className="modal-close" onClick={onClose}><X size={18} /></button>
+        </div>
+        <div className="import-formats-grid">
+          {IMPORT_FORMATS.map(fmt => (
+            <div key={fmt.key} className="import-format-card">
+              <div className="import-format-icon">{fmt.icon}</div>
+              <div className="import-format-info">
+                <span className="import-format-label">{fmt.label}</span>
+                <span className="import-format-desc">{fmt.description}</span>
+              </div>
+
+              {fmt.urlInput ? (
+                <div className="import-format-url">
+                  <input
+                    className="form-input"
+                    style={{ fontSize: 12, padding: '6px 10px' }}
+                    placeholder="https://docs.google.com/spreadsheets/d/..."
+                    value={sheetUrl}
+                    onChange={e => setSheetUrl(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleGSheets()}
+                  />
+                  <button className="btn btn-primary btn-sm" onClick={handleGSheets} disabled={!sheetUrl.trim() || sheetLoading}>
+                    {sheetLoading ? <><div className="spinner" /> Buscando...</> : <><Upload size={13} /> Importar</>}
+                  </button>
+                </div>
+              ) : (
+                <div className="import-format-actions">
+                  {fmt.template && (
+                    <button className="btn btn-ghost btn-sm" onClick={fmt.template} title={`Baixar modelo ${fmt.label}`}>
+                      <Download size={13} /> Modelo
+                    </button>
+                  )}
+                  <button className="btn btn-primary btn-sm" onClick={() => {
+                    if (!fileRefs.current[fmt.key]) return;
+                    fileRefs.current[fmt.key].click();
+                  }}>
+                    <Upload size={13} /> Selecionar
+                  </button>
+                  <input
+                    ref={el => fileRefs.current[fmt.key] = el}
+                    type="file"
+                    accept={fmt.accept}
+                    style={{ display: 'none' }}
+                    onChange={e => handleFile(fmt.key, e)}
+                  />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <p className="import-modal-note">
+          Campos obrigatórios: <strong>nome</strong> e <strong>preco</strong>. Opcionais: <em>categoria</em>, <em>descricao</em>.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function BulkActionsBar({ selected, products, onClearSelection, onRefresh, selectedEst }) {
+  const [action, setAction] = useState('');
+  const [newCategory, setNewCategory] = useState('');
+  const [priceChange, setPriceChange] = useState('');
+  const [priceMode, setPriceMode] = useState('percent'); // 'percent' | 'fixed'
+  const [applying, setApplying] = useState(false);
+
+  const selectedProducts = products.filter(p => selected.has(p._id));
+  const count = selectedProducts.length;
+
+  const apply = async () => {
+    if (!action) return;
+    setApplying(true);
+    let ok = 0, fail = 0;
+    for (const p of selectedProducts) {
+      try {
+        let update = {};
+        if (action === 'delete') {
+          await api.delete(`/establishments/${selectedEst._id}/products/${p._id}`);
+          ok++; continue;
+        }
+        if (action === 'category') update = { ...p, category: newCategory };
+        if (action === 'activate') update = { ...p, isActive: true };
+        if (action === 'deactivate') update = { ...p, isActive: false };
+        if (action === 'price') {
+          const val = parseFloat(priceChange);
+          if (isNaN(val)) { fail++; continue; }
+          const newPrice = priceMode === 'percent'
+            ? Math.max(0, p.price * (1 + val / 100))
+            : Math.max(0, p.price + val);
+          update = { ...p, price: Math.round(newPrice * 100) / 100 };
+        }
+        await api.put(`/establishments/${selectedEst._id}/products/${p._id}`, update);
+        ok++;
+      } catch { fail++; }
+    }
+    setApplying(false);
+    onClearSelection();
+    onRefresh();
+    toast.success(`${ok} produto${ok !== 1 ? 's' : ''} atualizado${ok !== 1 ? 's' : ''}${fail ? ` · ${fail} erro(s)` : ''}`);
+  };
+
+  const needsConfirm = action === 'delete';
+
+  return (
+    <div className="bulk-bar">
+      <span className="bulk-bar-count">{count} selecionado{count !== 1 ? 's' : ''}</span>
+      <div className="bulk-bar-actions">
+        <select className="form-input bulk-action-select" value={action} onChange={e => setAction(e.target.value)}>
+          <option value="">Escolher ação...</option>
+          <option value="activate">✅ Ativar</option>
+          <option value="deactivate">🚫 Desativar</option>
+          <option value="category">🏷️ Alterar categoria</option>
+          <option value="price">💰 Alterar preço</option>
+          <option value="delete">🗑️ Excluir</option>
+        </select>
+
+        {action === 'category' && (
+          <CategoryInput value={newCategory} onChange={setNewCategory} placeholder="Nova categoria..." />
+        )}
+
+        {action === 'price' && (
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <select className="form-input" style={{ width: 'auto', fontSize: 13 }} value={priceMode} onChange={e => setPriceMode(e.target.value)}>
+              <option value="percent">% percentual</option>
+              <option value="fixed">R$ valor fixo</option>
+            </select>
+            <input
+              className="form-input"
+              style={{ width: 90 }}
+              placeholder={priceMode === 'percent' ? 'ex: 10 ou -5' : 'ex: 2.00'}
+              value={priceChange}
+              onChange={e => setPriceChange(e.target.value)}
+            />
+          </div>
+        )}
+
+        {action && (
+          <button
+            className={`btn btn-sm ${needsConfirm ? 'btn-danger' : 'btn-primary'}`}
+            onClick={needsConfirm ? () => { if (confirm(`Excluir ${count} produto(s)?`)) apply(); } : apply}
+            disabled={applying || !action || (action === 'category' && !newCategory) || (action === 'price' && !priceChange)}
+          >
+            {applying ? <><div className="spinner" /> Aplicando...</> : 'Aplicar'}
+          </button>
+        )}
+      </div>
+      <button className="btn btn-ghost btn-sm" onClick={onClearSelection}>
+        <X size={14} /> Cancelar
+      </button>
+    </div>
+  );
+}
+
+// ---- Integrations Modal ----
+const INTEGRATIONS_CATALOG = [
+  { key: 'bling', name: 'Bling', logo: '🟦', description: 'ERP brasileiro para e-commerces', category: 'ERP', fields: [{ key: 'apiKey', label: 'API Key', type: 'password', placeholder: 'Sua chave de API do Bling' }] },
+  { key: 'tiny', name: 'Tiny ERP', logo: '🟩', description: 'Gestão para lojas virtuais e físicas', category: 'ERP', fields: [{ key: 'apiKey', label: 'API Key', type: 'password', placeholder: 'Token de acesso do Tiny' }] },
+  { key: 'omie', name: 'Omie', logo: '🟧', description: 'ERP em nuvem completo', category: 'ERP', fields: [{ key: 'appKey', label: 'App Key', type: 'text', placeholder: 'App Key' }, { key: 'appSecret', label: 'App Secret', type: 'password', placeholder: 'App Secret' }] },
+  { key: 'woocommerce', name: 'WooCommerce', logo: '🟪', description: 'Importe produtos da sua loja WooCommerce', category: 'E-commerce', fields: [{ key: 'url', label: 'URL da loja', type: 'text', placeholder: 'https://minhaloja.com.br' }, { key: 'consumerKey', label: 'Consumer Key', type: 'text', placeholder: 'ck_...' }, { key: 'consumerSecret', label: 'Consumer Secret', type: 'password', placeholder: 'cs_...' }] },
+  { key: 'shopify', name: 'Shopify', logo: '🟫', description: 'Sincronize o catálogo da sua loja Shopify', category: 'E-commerce', fields: [{ key: 'shopDomain', label: 'Domínio', type: 'text', placeholder: 'loja.myshopify.com' }, { key: 'accessToken', label: 'Access Token', type: 'password', placeholder: 'shpat_...' }] },
+  { key: 'mercadolivre', name: 'Mercado Livre', logo: '🟡', description: 'Importe anúncios do Mercado Livre', category: 'Marketplace', fields: [{ key: 'accessToken', label: 'Access Token', type: 'password', placeholder: 'APP_USR-...' }, { key: 'sellerId', label: 'Seller ID', type: 'text', placeholder: 'Seu ID de vendedor' }] },
+  { key: 'airtable', name: 'Airtable', logo: '🔵', description: 'Banco de dados visual com seus produtos', category: 'Planilha', fields: [{ key: 'apiKey', label: 'API Key', type: 'password', placeholder: 'pat...' }, { key: 'baseId', label: 'Base ID', type: 'text', placeholder: 'app...' }, { key: 'tableId', label: 'Tabela', type: 'text', placeholder: 'Produtos' }] },
+  { key: 'feedurl', name: 'Feed URL', logo: '🌐', description: 'URL pública que retorna JSON ou XML', category: 'Genérico', fields: [{ key: 'url', label: 'URL', type: 'text', placeholder: 'https://...' }, { key: 'format', label: 'Formato', type: 'select', options: ['json', 'xml'] }] },
+];
+const COMING_SOON_INT = [
+  { key: 'nuvemshop', name: 'Nuvemshop', logo: '☁️' },
+  { key: 'vtex', name: 'VTEX', logo: '⚡' },
+  { key: 'totvs', name: 'TOTVS', logo: '🔷' },
+];
+
+function IntegrationsModal({ est, onClose, onImported }) {
+  const [connected, setConnected] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [connectingTo, setConnectingTo] = useState(null);
+  const [syncingWith, setSyncingWith] = useState(null);
+  const [connectForm, setConnectForm] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [preview, setPreview] = useState(null);
+  const [syncMode, setSyncMode] = useState('both');
+
+  useEffect(() => { loadConnected(); }, []);
+
+  const loadConnected = async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.get('/integrations');
+      setConnected(data.integrations || []);
+    } catch {} finally { setLoading(false); }
+  };
+
+  const handleConnect = async () => {
+    const missing = connectingTo.fields.filter(f => f.type !== 'select' && !connectForm[f.key]);
+    if (missing.length) return toast.error(`Preencha: ${missing.map(f => f.label).join(', ')}`);
+    setSaving(true);
+    try {
+      await api.post('/integrations', { key: connectingTo.key, credentials: connectForm });
+      toast.success(`${connectingTo.name} conectado!`);
+      setConnectingTo(null); setConnectForm({});
+      loadConnected();
+    } catch (err) { toast.error(err.response?.data?.error || 'Erro ao salvar'); }
+    finally { setSaving(false); }
+  };
+
+  const handleDisconnect = async (id, name) => {
+    if (!confirm(`Desconectar ${name}?`)) return;
+    try { await api.delete(`/integrations/${id}`); toast.success('Removido'); loadConnected(); }
+    catch { toast.error('Erro ao remover'); }
+  };
+
+  const fetchPreview = async () => {
+    setSyncing(true); setPreview(null);
+    try {
+      const { data } = await api.post(`/integrations/${syncingWith._id}/preview`);
+      setPreview(data.products || []);
+    } catch (err) { toast.error(err.response?.data?.error || 'Erro ao buscar produtos'); }
+    finally { setSyncing(false); }
+  };
+
+  const handleSync = async () => {
+    if (!est || !preview?.length) return;
+    setSyncing(true);
+    const existing = await api.get(`/establishments/${est._id}/products`).then(r => r.data.products).catch(() => []);
+    const map = {}; existing.forEach(p => { map[p.name.trim().toLowerCase()] = p._id; });
+    let added = 0, updated = 0, fail = 0;
+    for (const row of preview) {
+      const existingId = map[row.name?.trim().toLowerCase()];
+      try {
+        if (existingId) { if (syncMode === 'add') continue; await api.put(`/establishments/${est._id}/products/${existingId}`, row); updated++; }
+        else { if (syncMode === 'update') continue; await api.post(`/establishments/${est._id}/products`, row); added++; }
+      } catch { fail++; }
+    }
+    setSyncing(false);
+    const parts = [];
+    if (added) parts.push(`${added} adicionado${added !== 1 ? 's' : ''}`);
+    if (updated) parts.push(`${updated} atualizado${updated !== 1 ? 's' : ''}`);
+    if (fail) parts.push(`${fail} erro${fail !== 1 ? 's' : ''}`);
+    toast.success(parts.join(' · ') || 'Nenhuma alteração');
+    onImported(); onClose();
+  };
+
+  const connectedKeys = new Set(connected.map(c => c.key));
+  const available = INTEGRATIONS_CATALOG.filter(i => !connectedKeys.has(i.key));
+  const categories = [...new Set(available.map(i => i.category))];
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box integrations-modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <h3 className="modal-title">Sincronizar Produtos</h3>
+            <p className="modal-subtitle">Conecte sistemas externos para sincronizar produtos</p>
+          </div>
+          <button className="modal-close" onClick={onClose}><X size={18} /></button>
+        </div>
+
+        {loading ? <div className="dash-loading"><div className="spinner spinner-dark" /></div> : (
+
+          /* ── Connect form ── */
+          connectingTo ? (
+            <div className="int-modal-body">
+              <button className="int-back-btn" onClick={() => { setConnectingTo(null); setConnectForm({}); }}>
+                <ChevronLeft size={14} /> Voltar
+              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: 28 }}>{connectingTo.logo}</span>
+                <strong style={{ fontSize: 16 }}>{connectingTo.name}</strong>
+              </div>
+              {connectingTo.fields.map(field => (
+                <div key={field.key} className="form-group">
+                  <label className="form-label">{field.label}</label>
+                  {field.type === 'select' ? (
+                    <select className="form-input" value={connectForm[field.key] || field.options[0]} onChange={e => setConnectForm(f => ({ ...f, [field.key]: e.target.value }))}>
+                      {field.options.map(o => <option key={o} value={o}>{o.toUpperCase()}</option>)}
+                    </select>
+                  ) : (
+                    <input className="form-input" type={field.type} placeholder={field.placeholder} value={connectForm[field.key] || ''} onChange={e => setConnectForm(f => ({ ...f, [field.key]: e.target.value }))} autoComplete="off" />
+                  )}
+                </div>
+              ))}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
+                <button className="btn btn-secondary" onClick={() => { setConnectingTo(null); setConnectForm({}); }}>Cancelar</button>
+                <button className="btn btn-primary" onClick={handleConnect} disabled={saving}>
+                  {saving ? <><div className="spinner" /> Salvando...</> : <><Check size={14} /> Conectar</>}
+                </button>
+              </div>
+            </div>
+
+          /* ── Sync view ── */
+          ) : syncingWith ? (
+            <div className="int-modal-body">
+              <button className="int-back-btn" onClick={() => { setSyncingWith(null); setPreview(null); }}>
+                <ChevronLeft size={14} /> Voltar
+              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: 28 }}>{INTEGRATIONS_CATALOG.find(i => i.key === syncingWith.key)?.logo}</span>
+                <strong style={{ fontSize: 16 }}>Sincronizar {INTEGRATIONS_CATALOG.find(i => i.key === syncingWith.key)?.name}</strong>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Modo</label>
+                <div className="import-mode-selector" style={{ width: 'fit-content' }}>
+                  {[{ value: 'add', label: 'Só adicionar' }, { value: 'update', label: 'Só atualizar' }, { value: 'both', label: 'Ambos' }].map(opt => (
+                    <button key={opt.value} className={`import-mode-btn${syncMode === opt.value ? ' active' : ''}`} onClick={() => setSyncMode(opt.value)}>{opt.label}</button>
+                  ))}
+                </div>
+              </div>
+              {!preview ? (
+                <button className="btn btn-secondary" onClick={fetchPreview} disabled={syncing}>
+                  {syncing ? <><div className="spinner" /> Buscando...</> : <><RefreshCw size={14} /> Buscar produtos</>}
+                </button>
+              ) : (
+                <>
+                  <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>⚡ {preview.length} produto{preview.length !== 1 ? 's' : ''} encontrado{preview.length !== 1 ? 's' : ''}</p>
+                  <div className="csv-table-wrap" style={{ maxHeight: 200 }}>
+                    <table className="csv-table">
+                      <thead><tr><th>Nome</th><th>Preço</th><th>Categoria</th></tr></thead>
+                      <tbody>{preview.slice(0, 50).map((p, i) => <tr key={i}><td>{p.name}</td><td>{p.price != null ? `R$ ${Number(p.price).toFixed(2)}` : '—'}</td><td>{p.category || '—'}</td></tr>)}</tbody>
+                    </table>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+                    <button className="btn btn-secondary" onClick={() => { setSyncingWith(null); setPreview(null); }}>Cancelar</button>
+                    <button className="btn btn-primary" onClick={handleSync} disabled={syncing || !est}>
+                      {syncing ? <><div className="spinner" /> Importando...</> : <><Check size={14} /> Confirmar</>}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+          /* ── Main list ── */
+          ) : (
+            <div className="int-modal-body">
+              {connected.length > 0 && (
+                <div className="int-modal-section">
+                  <p className="int-modal-section-title">Conectadas</p>
+                  {connected.map(conn => {
+                    const cat = INTEGRATIONS_CATALOG.find(i => i.key === conn.key);
+                    if (!cat) return null;
+                    return (
+                      <div key={conn._id} className="int-modal-row int-modal-row--connected">
+                        <span className="int-modal-logo">{cat.logo}</span>
+                        <div className="int-modal-info">
+                          <span className="int-modal-name">{cat.name}</span>
+                          <span className="int-modal-status"><span className="int-status-dot" /> Conectado</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button className="btn btn-secondary btn-sm" onClick={() => { setSyncingWith(conn); setPreview(null); }}>
+                            <RefreshCw size={12} /> Sincronizar
+                          </button>
+                          <button className="btn btn-ghost btn-sm est-delete-btn" onClick={() => handleDisconnect(conn._id, cat.name)}>
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {categories.map(cat => (
+                <div key={cat} className="int-modal-section">
+                  <p className="int-modal-section-title">{cat}</p>
+                  {available.filter(i => i.category === cat).map(intg => (
+                    <div key={intg.key} className="int-modal-row">
+                      <span className="int-modal-logo">{intg.logo}</span>
+                      <div className="int-modal-info">
+                        <span className="int-modal-name">{intg.name}</span>
+                        <span className="int-modal-desc">{intg.description}</span>
+                      </div>
+                      <button className="btn btn-primary btn-sm" onClick={() => { setConnectingTo(intg); setConnectForm({}); }}>
+                        <Plus size={12} /> Conectar
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ))}
+
+            </div>
+          )
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ProductsTab({ establishments, selectedEst, setSelectedEst, products, onRefresh, showForm, setShowForm, editingProduct, setEditingProduct }) {
-  const [csvPreview, setCsvPreview] = useState(null); // { rows, errors }
+  const [csvPreview, setCsvPreview] = useState(null);
   const [importing, setImporting] = useState(false);
-  const csvRef = useRef();
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importMode, setImportMode] = useState('add');
+  const [selected, setSelected] = useState(new Set());
+  const [showIntegrationsModal, setShowIntegrationsModal] = useState(false);
+
+  const allSelected = products.length > 0 && selected.size === products.length;
+  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(products.map(p => p._id)));
+  const toggleOne = (id) => setSelected(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
 
   const handleDelete = async (productId) => {
     if (!confirm('Remover este produto?')) return;
@@ -564,60 +1250,54 @@ function ProductsTab({ establishments, selectedEst, setSelectedEst, products, on
     }
   };
 
-  const handleCSVFile = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const result = parseCSV(ev.target.result);
-      setCsvPreview(result);
-    };
-    reader.readAsText(file, 'UTF-8');
-    e.target.value = '';
-  };
-
   const handleImport = async () => {
     if (!csvPreview?.rows?.length || !selectedEst) return;
     setImporting(true);
-    let ok = 0, fail = 0;
+    // build a name→id map from existing products for update matching
+    const existingMap = {};
+    products.forEach(p => { existingMap[p.name.trim().toLowerCase()] = p._id; });
+
+    let added = 0, updated = 0, skipped = 0, fail = 0;
     for (const row of csvPreview.rows) {
+      const existingId = existingMap[row.name.trim().toLowerCase()];
       try {
-        await api.post(`/establishments/${selectedEst._id}/products`, row);
-        ok++;
+        if (existingId) {
+          if (importMode === 'add') { skipped++; continue; }
+          await api.put(`/establishments/${selectedEst._id}/products/${existingId}`, row);
+          updated++;
+        } else {
+          if (importMode === 'update') { skipped++; continue; }
+          await api.post(`/establishments/${selectedEst._id}/products`, row);
+          added++;
+        }
       } catch {
         fail++;
       }
     }
     setImporting(false);
     setCsvPreview(null);
-    toast.success(`${ok} produto${ok !== 1 ? 's' : ''} importado${ok !== 1 ? 's' : ''}${fail ? ` · ${fail} erro(s)` : ''}`);
+    const parts = [];
+    if (added) parts.push(`${added} adicionado${added !== 1 ? 's' : ''}`);
+    if (updated) parts.push(`${updated} atualizado${updated !== 1 ? 's' : ''}`);
+    if (skipped) parts.push(`${skipped} ignorado${skipped !== 1 ? 's' : ''}`);
+    if (fail) parts.push(`${fail} erro${fail !== 1 ? 's' : ''}`);
+    toast.success(parts.join(' · ') || 'Nenhuma alteração');
     onRefresh();
   };
 
   return (
     <div className="dash-section">
       <div className="dash-section-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <h2>Produtos</h2>
-          {establishments.length > 1 && (
-            <select
-              className="form-input"
-              style={{ width: 'auto', fontSize: 13 }}
-              value={selectedEst?._id || ''}
-              onChange={e => setSelectedEst(establishments.find(est => est._id === e.target.value))}
-            >
-              {establishments.map(e => <option key={e._id} value={e._id}>{e.name}</option>)}
-            </select>
-          )}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-ghost btn-sm" onClick={downloadCSVTemplate} title="Baixar modelo CSV">
-            <Download size={15} /> Modelo CSV
+          <button className="btn btn-secondary btn-sm" onClick={() => setShowIntegrationsModal(true)}>
+            <Plug size={15} /> Sincronizar
           </button>
-          <button className="btn btn-secondary btn-sm" onClick={() => csvRef.current.click()} disabled={!selectedEst} title="Importar CSV">
-            <FileText size={15} /> Importar CSV
+          <button className="btn btn-secondary btn-sm" onClick={() => setShowImportModal(true)} disabled={!selectedEst}>
+            <Upload size={15} /> Importar
           </button>
-          <input ref={csvRef} type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={handleCSVFile} />
           <button
             className="btn btn-primary btn-sm"
             onClick={() => { setEditingProduct(null); setShowForm(true); }}
@@ -628,13 +1308,16 @@ function ProductsTab({ establishments, selectedEst, setSelectedEst, products, on
         </div>
       </div>
 
-      {/* CSV Preview */}
+      {showImportModal && <ImportModal onClose={() => setShowImportModal(false)} onParsed={setCsvPreview} />}
+      {showIntegrationsModal && <IntegrationsModal est={selectedEst} onClose={() => setShowIntegrationsModal(false)} onImported={onRefresh} />}
+
+      {/* Import Preview */}
       {csvPreview && (
         <div className="csv-preview">
           <div className="csv-preview-header">
             <div>
               <p className="csv-preview-title">
-                <FileText size={16} /> Preview da importação — {csvPreview.rows.length} produto{csvPreview.rows.length !== 1 ? 's' : ''}
+                <FileText size={16} /> Preview — {csvPreview.rows.length} produto{csvPreview.rows.length !== 1 ? 's' : ''}
               </p>
               {csvPreview.errors.length > 0 && (
                 <div className="csv-errors">
@@ -644,10 +1327,25 @@ function ProductsTab({ establishments, selectedEst, setSelectedEst, products, on
                 </div>
               )}
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <div className="import-mode-selector">
+                {[
+                  { value: 'add', label: 'Só adicionar' },
+                  { value: 'update', label: 'Só atualizar' },
+                  { value: 'both', label: 'Adicionar e atualizar' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    className={`import-mode-btn${importMode === opt.value ? ' active' : ''}`}
+                    onClick={() => setImportMode(opt.value)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
               <button className="btn btn-secondary btn-sm" onClick={() => setCsvPreview(null)}>Cancelar</button>
               <button className="btn btn-primary btn-sm" onClick={handleImport} disabled={importing || !csvPreview.rows.length}>
-                {importing ? <><div className="spinner" /> Importando...</> : <><Check size={15} /> Confirmar importação</>}
+                {importing ? <><div className="spinner" /> Importando...</> : <><Check size={15} /> Confirmar</>}
               </button>
             </div>
           </div>
@@ -690,16 +1388,38 @@ function ProductsTab({ establishments, selectedEst, setSelectedEst, products, on
         <div className="dash-empty">
           <Package size={48} />
           <h3>Nenhum produto cadastrado</h3>
-          <p>Adicione manualmente ou importe via CSV.</p>
+          <p>Adicione manualmente ou importe via CSV, Excel, JSON ou XML.</p>
           <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-            <button className="btn btn-secondary" onClick={downloadCSVTemplate}><Download size={16} /> Baixar modelo</button>
+            <button className="btn btn-secondary" onClick={() => setShowImportModal(true)}><Upload size={16} /> Importar</button>
             <button className="btn btn-primary" onClick={() => setShowForm(true)}><Plus size={16} /> Adicionar Produto</button>
           </div>
         </div>
       ) : (
         <div className="products-list">
+          <div className="products-list-header">
+            <label className="bulk-checkbox-label">
+              <input type="checkbox" checked={allSelected} onChange={toggleAll} />
+              <span>{allSelected ? 'Desmarcar todos' : 'Selecionar todos'}</span>
+            </label>
+          </div>
+          {selected.size > 0 && (
+            <BulkActionsBar
+              selected={selected}
+              products={products}
+              selectedEst={selectedEst}
+              onClearSelection={() => setSelected(new Set())}
+              onRefresh={onRefresh}
+            />
+          )}
           {products.map(p => (
-            <div key={p._id} className="product-list-item">
+            <div key={p._id} className={`product-list-item${selected.has(p._id) ? ' selected' : ''}`} onClick={() => toggleOne(p._id)}>
+              <input
+                type="checkbox"
+                className="bulk-checkbox"
+                checked={selected.has(p._id)}
+                onChange={() => toggleOne(p._id)}
+                onClick={e => e.stopPropagation()}
+              />
               <div className="product-list-image">
                 {p.images?.[0]
                   ? <img src={p.images[0]} alt={p.name} />
@@ -712,7 +1432,8 @@ function ProductsTab({ establishments, selectedEst, setSelectedEst, products, on
                 <p className="product-list-desc">{p.description}</p>
               </div>
               <div className="product-list-price">{formatPrice(p.price)}</div>
-              <div className="product-list-actions">
+              {p.isActive === false && <span className="product-inactive-badge">Inativo</span>}
+              <div className="product-list-actions" onClick={e => e.stopPropagation()}>
                 <button className="btn btn-ghost btn-sm" onClick={() => { setEditingProduct(p); setShowForm(true); }}>
                   <Edit2 size={14} />
                 </button>
@@ -798,18 +1519,8 @@ function HoursTab({ establishments, selectedEst, setSelectedEst, onRefresh }) {
   return (
     <div className="dash-section">
       <div className="dash-section-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <h2>Horários de Funcionamento</h2>
-          {establishments.length > 1 && (
-            <select
-              className="form-input"
-              style={{ width: 'auto', fontSize: 13 }}
-              value={selectedEst?._id || ''}
-              onChange={e => setSelectedEst(establishments.find(est => est._id === e.target.value))}
-            >
-              {establishments.map(e => <option key={e._id} value={e._id}>{e.name}</option>)}
-            </select>
-          )}
         </div>
         <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving || !selectedEst}>
           {saving ? <><div className="spinner" />Salvando...</> : <><Check size={16} />Salvar horários</>}
@@ -984,18 +1695,8 @@ function ServicesTab({ establishments, selectedEst, setSelectedEst, services, on
   return (
     <div className="dash-section">
       <div className="dash-section-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <h2>Serviços</h2>
-          {establishments.length > 1 && (
-            <select
-              className="form-input"
-              style={{ width: 'auto', fontSize: 13 }}
-              value={selectedEst?._id || ''}
-              onChange={e => setSelectedEst(establishments.find(est => est._id === e.target.value))}
-            >
-              {establishments.map(e => <option key={e._id} value={e._id}>{e.name}</option>)}
-            </select>
-          )}
         </div>
         <button
           className="btn btn-primary btn-sm"
