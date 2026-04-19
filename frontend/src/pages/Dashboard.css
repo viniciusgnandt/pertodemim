@@ -239,35 +239,67 @@
 .hours-grid {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .hours-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 44px 100px 1fr;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: white;
+  border: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+.hours-row:has(input[type=checkbox]:checked) {
+  background: #fafafa;
+  opacity: 0.65;
 }
 
 .hours-day {
-  font-weight: 600;
+  font-weight: 700;
   font-size: 13px;
-  width: 34px;
+  color: var(--text);
 }
 
 .hours-closed-label {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   font-size: 12px;
+  font-weight: 600;
   color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.hours-closed-label input[type=checkbox] {
+  accent-color: var(--primary);
+  width: 15px;
+  height: 15px;
   cursor: pointer;
 }
 
+.hours-time-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hours-time-range span {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
 .hours-input {
-  width: 100px !important;
-  padding: 6px 8px !important;
+  width: 110px !important;
+  padding: 6px 10px !important;
   font-size: 13px !important;
+  border-radius: 8px !important;
 }
 
 /* Products list */
@@ -609,4 +641,221 @@
 .boost-item-amount {
   font-weight: 700;
   color: var(--primary);
+}
+
+/* ── Hours Exceptions ── */
+.exc-section {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+.exc-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.exc-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.exc-form { margin-bottom: 16px; }
+
+.exc-form-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.exc-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 20px 0;
+}
+
+.exc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.exc-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #F9FAFB;
+}
+
+.exc-item--closed {
+  background: #FFF5F5;
+  border-color: #FED7D7;
+}
+
+.exc-item-date {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  min-width: 160px;
+  text-transform: capitalize;
+}
+
+.exc-item-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.exc-item-reason {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--border);
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.exc-item-closed {
+  font-size: 13px;
+  font-weight: 700;
+  color: #E53E3E;
+}
+
+.exc-item-hours {
+  font-size: 13px;
+  font-weight: 700;
+  color: #16A34A;
+}
+
+/* ── Open 24h ── */
+.hours-row-24h { color: #16A34A; font-weight: 700; font-size: 13px; }
+
+/* ── Est form inner tabs ── */
+.est-form-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0;
+}
+.est-form-tab {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: -1px;
+}
+.est-form-tab:hover { color: var(--primary); }
+.est-form-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* ── Image upload inline ── */
+.image-upload-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.image-preview-sm {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+}
+
+/* ── CSV Import Preview ── */
+.csv-preview {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.csv-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.csv-preview-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.csv-errors {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.csv-error-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #E53E3E;
+  font-weight: 600;
+}
+
+.csv-table-wrap {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.csv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.csv-table th {
+  background: #F3F4F6;
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 700;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.csv-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+.csv-table tr:last-child td {
+  border-bottom: none;
+}
+
+.csv-table tr:hover td {
+  background: #F9FAFB;
+}
+
+.csv-empty {
+  text-align: center;
+  padding: 32px;
+  color: var(--text-muted);
+  font-size: 14px;
 }

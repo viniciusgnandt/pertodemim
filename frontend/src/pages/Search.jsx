@@ -44,7 +44,7 @@ export default function Search() {
   const grouped = products.reduce((acc, p) => {
     const est = p.establishmentId;
     if (!est) return acc;
-    const key = typeof est === 'object' ? est._id : est;
+    const key = typeof est === 'object' ? (est.slug || est._id) : est;
     const name = typeof est === 'object' ? est.name : 'Estabelecimento';
     if (!acc[key]) acc[key] = { name, est, products: [] };
     acc[key].products.push(p);

@@ -133,3 +133,24 @@
 
 .est-card-open.open { color: var(--green); }
 .est-card-open.closed { color: var(--red); }
+
+/* ── List view variant ── */
+.est-card--list {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+.est-card--list .est-card-cover {
+  width: 100px;
+  height: 100px;
+  flex-shrink: 0;
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+}
+.est-card--list .est-card-cover-placeholder { font-size: 32px; }
+.est-card--list .est-card-body {
+  flex: 1;
+  padding: 12px 14px;
+}
+.est-card--list .est-card-desc { display: none; }
+.est-card--list .est-card-header { margin-bottom: 6px; }
+.est-card--list .est-card-footer { padding-top: 6px; }

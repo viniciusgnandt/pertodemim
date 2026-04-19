@@ -33,12 +33,12 @@ function isOpenNow(businessHours) {
   return cur >= openH * 60 + openM && cur < closeH * 60 + closeM;
 }
 
-export default function EstablishmentCard({ establishment }) {
+export default function EstablishmentCard({ establishment, listView = false }) {
   const open = isOpenNow(establishment.businessHours);
   const dist = formatDistance(establishment.distance);
 
   return (
-    <Link to={`/establishment/${establishment._id}`} className="est-card">
+    <Link to={`/establishment/${establishment.slug || establishment._id}`} className={`est-card${listView ? ' est-card--list' : ''}`}>
       <div className="est-card-cover">
         {establishment.coverImage
           ? <img src={establishment.coverImage} alt={establishment.name} loading="lazy" />

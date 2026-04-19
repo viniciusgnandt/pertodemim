@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { Link } from 'react-router-dom';
 import L from 'leaflet';
 import api from '../api/axios';
 import EstablishmentCard from '../components/EstablishmentCard';
-import { MapPin, SlidersHorizontal, RefreshCw, Navigation, Zap, List, Map } from 'lucide-react';
+import { MapPin, SlidersHorizontal, RefreshCw, Navigation, Zap, ChevronLeft, ChevronRight, EyeOff, Eye, LayoutGrid, List } from 'lucide-react';
 import './Home.css';
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -18,6 +18,12 @@ const CATEGORY_ICON = {
   supermarket: '🛒', pharmacy: '💊', bakery: '🥖', butcher: '🥩',
   restaurant: '🍽️', convenience: '🏪', petshop: '🐾', electronics: '📱',
   clothing: '👔', other: '🏬',
+};
+
+const CATEGORY_LABELS = {
+  supermarket: 'Supermercado', pharmacy: 'Farmácia', bakery: 'Padaria',
+  butcher: 'Açougue', restaurant: 'Restaurante', convenience: 'Conveniência',
+  petshop: 'Pet Shop', electronics: 'Eletrônicos', clothing: 'Vestuário', other: 'Outros',
 };
 
 const CATEGORY_COLOR = {
@@ -62,6 +68,14 @@ const CATEGORIES = [
 const MOGI_CENTER = { lat: -23.5232, lng: -46.1897 };
 const PAGE_SIZE = 12;
 
+function FlyToUser({ location }) {
+  const map = useMap();
+  useEffect(() => {
+    if (location) map.flyTo([location.lat, location.lng], 16, { duration: 1.2 });
+  }, [location, map]);
+  return null;
+}
+
 export default function Home() {
   const [establishments, setEstablishments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,8 +85,10 @@ export default function Home() {
   const [radius, setRadius] = useState(5000);
   const [locating, setLocating] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [view, setView] = useState('list');
+  const [showMap, setShowMap] = useState(true);
+  const [listView, setListView] = useState('cards');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const categoriesRef = useRef(null);
 
   const fetchEstablishments = useCallback(async (loc, cat, rad) => {
     setLoading(true);
@@ -87,6 +103,20 @@ export default function Home() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setUserLocation(loc);
+          setMapCenter(loc);
+        },
+        () => {},
+        { timeout: 10000 }
+      );
     }
   }, []);
 
@@ -109,6 +139,11 @@ export default function Home() {
       },
       { timeout: 10000 }
     );
+  };
+
+  const scrollCategories = (dir) => {
+    if (!categoriesRef.current) return;
+    categoriesRef.current.scrollBy({ left: dir === 'right' ? 200 : -200, behavior: 'smooth' });
   };
 
   const sponsored = establishments.filter(e => e.isSponsored);
@@ -136,35 +171,46 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Filters bar — outside map container to avoid Leaflet CSS leak */}
+      {/* Filters bar */}
       <div className="container" style={{ contain: 'layout style' }}>
-        <div className="home-filters" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 12, padding: '20px 0 12px' }}>
-          <div className="home-filters-categories" style={{ display: 'flex', flexDirection: 'row', gap: 8, flex: 1, minWidth: 0, overflowX: 'auto' }}>
+        {/* Row 1: categories with arrows */}
+        <div className="home-filters-row1">
+          <button className="cat-arrow-btn" onClick={() => scrollCategories('left')} aria-label="Rolar esquerda">
+            <ChevronLeft size={16} />
+          </button>
+          <div className="home-filters-categories" ref={categoriesRef}>
             {CATEGORIES.map(cat => (
               <button
                 key={cat.value}
                 className={`filter-chip ${category === cat.value ? 'active' : ''}`}
                 onClick={() => setCategory(cat.value)}
-                style={{ display: 'inline-flex', flexDirection: 'row', alignItems: 'center', height: 'auto', width: 'auto', flexShrink: 0 }}
               >
                 {cat.label}
               </button>
             ))}
           </div>
-          <div className="home-filters-actions" style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            <div className="view-toggle">
-              <button className={`view-toggle-btn ${view === 'list' ? 'active' : ''}`} onClick={() => setView('list')} title="Lista">
-                <List size={16} />
-              </button>
-              <button className={`view-toggle-btn ${view === 'map' ? 'active' : ''}`} onClick={() => setView('map')} title="Mapa">
-                <Map size={16} />
-              </button>
-            </div>
-            <button className="btn btn-ghost btn-sm home-filter-toggle" onClick={() => setShowFilters(v => !v)}>
-              <SlidersHorizontal size={16} />
-              Filtros
-            </button>
-          </div>
+          <button className="cat-arrow-btn" onClick={() => scrollCategories('right')} aria-label="Rolar direita">
+            <ChevronRight size={16} />
+          </button>
+        </div>
+
+        {/* Row 2: hide map + filters */}
+        <div className="home-filters-row2">
+          <button
+            className={`btn btn-ghost btn-sm ${!showMap ? 'active-ghost' : ''}`}
+            onClick={() => setShowMap(v => !v)}
+          >
+            {showMap ? <EyeOff size={16} /> : <Eye size={16} />}
+            {showMap ? 'Ocultar mapa' : 'Ver mapa'}
+          </button>
+
+          <button
+            className={`btn btn-ghost btn-sm ${showFilters ? 'active-ghost' : ''}`}
+            onClick={() => setShowFilters(v => !v)}
+          >
+            <SlidersHorizontal size={16} />
+            Filtros
+          </button>
         </div>
 
         {showFilters && (
@@ -180,19 +226,20 @@ export default function Home() {
       </div>
 
       <div className="container">
-        {/* Map view */}
-        {view === 'map' && (
+        {/* Map */}
+        {showMap && (
           <div className="home-map-wrapper">
             <MapContainer
               center={[mapCenter.lat, mapCenter.lng]}
               zoom={14}
               className="home-map"
-              key={`${mapCenter.lat}-${mapCenter.lng}`}
             >
               <TileLayer
-                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                maxZoom={19}
               />
+              <FlyToUser location={userLocation} />
               {userLocation && (
                 <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon}>
                   <Popup>Você está aqui</Popup>
@@ -204,12 +251,31 @@ export default function Home() {
                   position={[est.location.coordinates[1], est.location.coordinates[0]]}
                   icon={makeIcon(est)}
                 >
-                  <Popup>
-                    <div style={{ minWidth: 180 }}>
-                      <strong style={{ fontSize: 14 }}>{est.name}</strong>
-                      {est.isSponsored && <span style={{ display: 'block', color: '#FF5A1F', fontSize: 11, fontWeight: 700, marginTop: 2 }}>⚡ Patrocinado</span>}
-                      {est.address?.neighborhood && <p style={{ fontSize: 12, color: '#666', margin: '4px 0 6px' }}>{est.address.neighborhood}</p>}
-                      <Link to={`/establishment/${est._id}`} style={{ color: '#FF5A1F', fontWeight: 700, fontSize: 13 }}>Ver estabelecimento →</Link>
+                  <Popup minWidth={220} className="map-popup">
+                    <div className="map-popup-inner">
+                      {est.coverImage && (
+                        <img src={est.coverImage} alt={est.name} className="map-popup-cover" />
+                      )}
+                      <div className="map-popup-body">
+                        <div className="map-popup-top">
+                          {est.logo && <img src={est.logo} alt="" className="map-popup-logo" />}
+                          <div>
+                            <div className="map-popup-name">{est.name}</div>
+                            <div className="map-popup-category">
+                              {CATEGORY_ICON[est.category] || '🏬'} {CATEGORY_LABELS[est.category] || est.category}
+                            </div>
+                          </div>
+                        </div>
+                        {est.isSponsored && (
+                          <div className="map-popup-sponsored">⚡ Patrocinado</div>
+                        )}
+                        {est.address?.neighborhood && (
+                          <div className="map-popup-neighborhood">📍 {est.address.neighborhood}</div>
+                        )}
+                        <Link to={`/establishment/${est.slug || est._id}`} className="map-popup-btn">
+                          Ver estabelecimento →
+                        </Link>
+                      </div>
                     </div>
                   </Popup>
                 </Marker>
@@ -219,66 +285,80 @@ export default function Home() {
           </div>
         )}
 
-        {/* List view */}
-        {view === 'list' && (
-          <>
-            {sponsored.length > 0 && (
-              <section className="home-section">
-                <div className="home-section-header">
-                  <h2><Zap size={20} className="section-icon-sponsored" /> Destaques Patrocinados</h2>
-                </div>
-                <div className="establishments-grid">
-                  {sponsored.map(est => <EstablishmentCard key={est._id} establishment={est} />)}
-                </div>
-              </section>
-            )}
+        {/* List */}
+        {sponsored.length > 0 && (
+          <section className="home-section">
+            <div className="home-section-header">
+              <h2><Zap size={20} className="section-icon-sponsored" /> Destaques Patrocinados</h2>
+            </div>
+            <div className={listView === 'list' ? 'establishments-list' : 'establishments-grid'}>
+              {sponsored.map(est => <EstablishmentCard key={est._id} establishment={est} listView={listView === 'list'} />)}
+            </div>
+          </section>
+        )}
 
-            <section className="home-section">
-              <div className="home-section-header">
-                <h2>
-                  <MapPin size={20} />
-                  {userLocation ? `Próximos de você (${regular.length})` : `Estabelecimentos (${regular.length})`}
-                </h2>
-                <button className="btn btn-ghost btn-sm" onClick={() => fetchEstablishments(userLocation, category, radius)}>
-                  <RefreshCw size={14} /> Atualizar
+        <section className="home-section">
+          <div className="home-section-header">
+            <h2>
+              <MapPin size={20} />
+              {userLocation ? `Próximos de você (${regular.length})` : `Estabelecimentos (${regular.length})`}
+            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div className="view-toggle">
+                <button
+                  className={`view-toggle-btn ${listView === 'cards' ? 'active' : ''}`}
+                  onClick={() => setListView('cards')}
+                  title="Cards"
+                >
+                  <LayoutGrid size={15} />
+                </button>
+                <button
+                  className={`view-toggle-btn ${listView === 'list' ? 'active' : ''}`}
+                  onClick={() => setListView('list')}
+                  title="Lista"
+                >
+                  <List size={15} />
                 </button>
               </div>
+              <button className="btn btn-ghost btn-sm" onClick={() => fetchEstablishments(userLocation, category, radius)}>
+                <RefreshCw size={14} /> Atualizar
+              </button>
+            </div>
+          </div>
 
-              {loading ? (
-                <div className="establishments-grid">
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <div key={i} className="est-card-skeleton">
-                      <div className="skeleton" style={{ height: 140 }} />
-                      <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <div className="skeleton" style={{ height: 16, width: '70%' }} />
-                        <div className="skeleton" style={{ height: 12, width: '50%' }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : regular.length === 0 && sponsored.length === 0 ? (
-                <div className="home-empty">
-                  <MapPin size={48} />
-                  <h3>Nenhum estabelecimento encontrado</h3>
-                  <p>Tente aumentar o raio de busca ou mudar a categoria.</p>
-                </div>
-              ) : (
-                <>
-                  <div className="establishments-grid">
-                    {visibleRegular.map(est => <EstablishmentCard key={est._id} establishment={est} />)}
+          {loading ? (
+            <div className="establishments-grid">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="est-card-skeleton">
+                  <div className="skeleton" style={{ height: 140 }} />
+                  <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div className="skeleton" style={{ height: 16, width: '70%' }} />
+                    <div className="skeleton" style={{ height: 12, width: '50%' }} />
                   </div>
-                  {hasMore && (
-                    <div className="home-show-more">
-                      <button className="btn btn-secondary" onClick={() => setVisibleCount(c => c + PAGE_SIZE)}>
-                        Mostrar mais ({regular.length - visibleCount} restantes)
-                      </button>
-                    </div>
-                  )}
-                </>
+                </div>
+              ))}
+            </div>
+          ) : regular.length === 0 && sponsored.length === 0 ? (
+            <div className="home-empty">
+              <MapPin size={48} />
+              <h3>Nenhum estabelecimento encontrado</h3>
+              <p>Tente aumentar o raio de busca ou mudar a categoria.</p>
+            </div>
+          ) : (
+            <>
+              <div className={listView === 'list' ? 'establishments-list' : 'establishments-grid'}>
+                {visibleRegular.map(est => <EstablishmentCard key={est._id} establishment={est} listView={listView === 'list'} />)}
+              </div>
+              {hasMore && (
+                <div className="home-show-more">
+                  <button className="btn btn-secondary" onClick={() => setVisibleCount(c => c + PAGE_SIZE)}>
+                    Mostrar mais ({regular.length - visibleCount} restantes)
+                  </button>
+                </div>
               )}
-            </section>
-          </>
-        )}
+            </>
+          )}
+        </section>
       </div>
     </div>
   );

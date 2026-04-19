@@ -1,5 +1,16 @@
 const mongoose = require('mongoose');
 
+function generateSlug(name) {
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+}
+
 const businessHoursSchema = new mongoose.Schema({
   day: {
     type: String,
@@ -45,6 +56,7 @@ const establishmentSchema = new mongoose.Schema({
       required: true,
     },
   },
+  slug: { type: String, unique: true, sparse: true },
   phone: { type: String },
   logo: { type: String },
   coverImage: { type: String },
@@ -65,6 +77,18 @@ establishmentSchema.index({ category: 1 });
 establishmentSchema.index({ isActive: 1 });
 establishmentSchema.index({ isSponsored: 1 });
 establishmentSchema.index({ name: 'text', description: 'text' });
+
+// Generate unique slug on save
+establishmentSchema.pre('save', async function () {
+  if (!this.isModified('name') && this.slug) return;
+  const base = generateSlug(this.name);
+  let slug = base;
+  let i = 1;
+  while (await mongoose.model('Establishment').exists({ slug, _id: { $ne: this._id } })) {
+    slug = `${base}-${i++}`;
+  }
+  this.slug = slug;
+});
 
 // Auto-expire sponsorship
 establishmentSchema.pre('find', function () {

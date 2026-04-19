@@ -60,10 +60,13 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/establishments/:id
+// GET /api/establishments/:idOrSlug
 router.get('/:id', async (req, res) => {
   try {
-    const establishment = await Establishment.findById(req.params.id)
+    const { id } = req.params;
+    const isObjectId = mongoose.Types.ObjectId.isValid(id) && id.length === 24;
+    const establishment = await Establishment
+      .findOne(isObjectId ? { _id: id } : { slug: id })
       .populate('ownerId', 'name email');
     if (!establishment) return res.status(404).json({ error: 'Establishment not found' });
     res.json({ establishment });

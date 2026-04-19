@@ -8,6 +8,8 @@ const mongoose = require('mongoose');
 const authRoutes = require('./routes/auth');
 const establishmentRoutes = require('./routes/establishments');
 const productRoutes = require('./routes/products');
+const serviceRoutes = require('./routes/services');
+const hoursExceptionRoutes = require('./routes/hoursExceptions');
 const uploadRoutes = require('./routes/upload');
 const reviewRoutes = require('./routes/reviews');
 const favoriteRoutes = require('./routes/favorites');
@@ -50,6 +52,8 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/establishments', establishmentRoutes);
+app.use('/api/establishments/:id/services', serviceRoutes);
+app.use('/api/establishments/:id/hours-exceptions', hoursExceptionRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/reviews', reviewRoutes);
