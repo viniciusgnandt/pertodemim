@@ -20,5 +20,7 @@ const serviceSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 serviceSchema.index({ establishmentId: 1 });
+serviceSchema.index({ name: 'text', description: 'text' });
+serviceSchema.index({ isActive: 1 });
 
 module.exports = mongoose.model('Service', serviceSchema);

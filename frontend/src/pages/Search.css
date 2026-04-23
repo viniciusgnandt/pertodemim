@@ -1,13 +1,33 @@
 .search-hero {
-  background: linear-gradient(135deg, var(--secondary), #2D2D4E);
+  background: var(--gradient);
   color: white;
-  padding: 40px 0 36px;
+  padding: 28px 0 24px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.search-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  pointer-events: none;
+}
+.search-hero > .container { position: relative; z-index: 1; }
+
+.search-hero-title {
+  font-size: clamp(26px, 5vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: 4px;
+  color: white;
 }
 
-.search-hero h1 {
-  font-size: 28px;
-  font-weight: 800;
-  margin-bottom: 16px;
+.search-hero-subtitle {
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0.75;
+  margin-bottom: 18px;
 }
 
 .search-form {
@@ -18,7 +38,12 @@
   border-radius: 12px;
   padding: 6px 6px 6px 16px;
   max-width: 600px;
+  margin: 0 auto;
   box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.search-form-input::placeholder {
+  transition: opacity 0.25s;
 }
 
 .search-form-icon {
@@ -133,4 +158,145 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.search-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+  border-bottom: 1.5px solid var(--border);
+  padding-bottom: 0;
+}
+.search-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1.5px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.search-tab:hover { color: var(--primary); }
+.search-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+.search-tab-count {
+  background: var(--border);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+.search-tab.active .search-tab-count {
+  background: var(--gradient-soft);
+  color: var(--primary);
+}
+
+.search-section { margin-bottom: 36px; }
+.search-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 14px;
+  color: var(--text);
+}
+.search-section-title svg { color: var(--primary); }
+
+.search-services-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.search-service-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.15s;
+}
+.search-service-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+.search-service-body { flex: 1; min-width: 0; }
+.search-service-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.search-service-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+.search-service-meta {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.search-service-price {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--primary);
+  white-space: nowrap;
+  letter-spacing: -0.02em;
+}
+
+.search-featured {
+  margin-top: 36px;
+  padding-top: 28px;
+  border-top: 1px solid var(--border);
+}
+.search-featured-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.search-featured-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+.search-featured-header h2 svg { color: var(--primary); }
+.search-featured-badge {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--primary);
+  background: var(--gradient-soft);
+  border-radius: 20px;
+  padding: 3px 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }

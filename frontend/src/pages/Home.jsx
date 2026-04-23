@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import L from 'leaflet';
 import api from '../api/axios';
 import EstablishmentCard from '../components/EstablishmentCard';
-import { MapPin, SlidersHorizontal, RefreshCw, Navigation, Zap, ChevronLeft, ChevronRight, EyeOff, Eye, LayoutGrid, List } from 'lucide-react';
+import { MapPin, SlidersHorizontal, RefreshCw, Navigation, Zap, ChevronLeft, ChevronRight, EyeOff, Eye, LayoutGrid, List, Maximize2, Minimize2 } from 'lucide-react';
 import './Home.css';
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -76,6 +76,15 @@ function FlyToUser({ location }) {
   return null;
 }
 
+function InvalidateOnResize({ trigger }) {
+  const map = useMap();
+  useEffect(() => {
+    const t = setTimeout(() => map.invalidateSize(), 220);
+    return () => clearTimeout(t);
+  }, [trigger, map]);
+  return null;
+}
+
 export default function Home() {
   const [establishments, setEstablishments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -86,9 +95,22 @@ export default function Home() {
   const [locating, setLocating] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showMap, setShowMap] = useState(true);
+  const [mapFullscreen, setMapFullscreen] = useState(false);
   const [listView, setListView] = useState('cards');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const categoriesRef = useRef(null);
+
+  useEffect(() => {
+    if (!mapFullscreen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e) => { if (e.key === 'Escape') setMapFullscreen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [mapFullscreen]);
 
   const fetchEstablishments = useCallback(async (loc, cat, rad) => {
     setLoading(true);
@@ -160,9 +182,6 @@ export default function Home() {
             Encontre o que você precisa<br />
             <span>perto de você</span>
           </h1>
-          <p className="home-hero-subtitle">
-            Veja produtos com preços antes de sair de casa. Supermercados, farmácias, padarias e muito mais.
-          </p>
           <div className="home-hero-actions">
             <button className="btn btn-primary btn-lg" onClick={locateUser} disabled={locating}>
               {locating ? <><div className="spinner" /> Localizando...</> : <><Navigation size={18} /> Usar minha localização</>}
@@ -228,18 +247,24 @@ export default function Home() {
       <div className="container">
         {/* Map */}
         {showMap && (
-          <div className="home-map-wrapper">
+          <div className={`home-map-wrapper${mapFullscreen ? ' home-map-fullscreen' : ''}`}>
             <MapContainer
               center={[mapCenter.lat, mapCenter.lng]}
               zoom={14}
               className="home-map"
             >
               <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                attribution='Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics'
+                maxZoom={19}
+              />
+              <TileLayer
+                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
                 maxZoom={19}
               />
               <FlyToUser location={userLocation} />
+              <InvalidateOnResize trigger={mapFullscreen} />
               {userLocation && (
                 <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon}>
                   <Popup>Você está aqui</Popup>
@@ -275,6 +300,28 @@ export default function Home() {
                         <Link to={`/establishment/${est.slug || est._id}`} className="map-popup-btn">
                           Ver estabelecimento →
                         </Link>
+                        <div className="map-popup-routes">
+                          <a
+                            href={`https://www.google.com/maps/dir/?api=1&destination=${est.location.coordinates[1]},${est.location.coordinates[0]}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="map-popup-route-btn map-popup-route-gmaps"
+                            title="Abrir rota no Google Maps"
+                          >
+                            <img src="https://www.google.com/images/branding/product/1x/maps_32dp.png" alt="" width="14" height="14" />
+                            Google Maps
+                          </a>
+                          <a
+                            href={`https://www.waze.com/ul?ll=${est.location.coordinates[1]},${est.location.coordinates[0]}&navigate=yes`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="map-popup-route-btn map-popup-route-waze"
+                            title="Abrir rota no Waze"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.54 6.63a9.71 9.71 0 0 1 1.09 7.54 9.49 9.49 0 0 1-9.23 7.08 9.87 9.87 0 0 1-2.22-.26 2.76 2.76 0 0 1-5.15-.53 2.75 2.75 0 0 1-1.36-4.51A9.42 9.42 0 0 1 3 11.25C3 6.14 7.29 2 12.57 2a9.5 9.5 0 0 1 7.97 4.63zM9 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm6 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-2.5 3.5c1.79 0 3.31-1.01 3.86-2.39a.5.5 0 0 0-.93-.37c-.4 1-1.58 1.76-2.93 1.76s-2.53-.76-2.93-1.76a.5.5 0 1 0-.93.37c.55 1.38 2.07 2.39 3.86 2.39z"/></svg>
+                            Waze
+                          </a>
+                        </div>
                       </div>
                     </div>
                   </Popup>
@@ -282,6 +329,15 @@ export default function Home() {
               ))}
             </MapContainer>
             <div className="home-map-count">{establishments.length} estabelecimento{establishments.length !== 1 ? 's' : ''}</div>
+            <button
+              type="button"
+              className="home-map-fs-btn"
+              onClick={() => setMapFullscreen(v => !v)}
+              aria-label={mapFullscreen ? 'Fechar tela cheia' : 'Expandir mapa'}
+              title={mapFullscreen ? 'Fechar tela cheia (Esc)' : 'Expandir mapa'}
+            >
+              {mapFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+            </button>
           </div>
         )}
 
